@@ -1,5 +1,6 @@
 """Module to submit and monitor slurm jobs via the slurm rest api"""
 
+import binascii
 import json
 import logging
 import sys
@@ -19,6 +20,8 @@ from aind_slurm_rest.models.v0036_job_properties import V0036JobProperties
 from aind_slurm_rest.models.v0036_job_submission import V0036JobSubmission
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logging.basicConfig(level="INFO")
 
 
 class SlurmClientSettings(BaseSettings):
@@ -337,23 +340,58 @@ class SubmitSlurmJob:
         submit_response = self._submit_job()
         self._monitor_job(submit_response=submit_response)
 
+    @classmethod
+    def from_args(cls, system_args: List[str], slurm: SlurmApi):
+        """
+        Create job from command line arguments
+        Parameters
+        ----------
+        system_args : List[str]
+        slurm : SlurmApi
+        """
+        parser = ArgumentParser()
+        parser.add_argument(
+            "--script-path",
+            type=str,
+            required=False,
+            help="Path to bash script for slurm to run",
+        )
+        parser.add_argument(
+            "--script-encoded",
+            type=str,
+            required=False,
+            help="Bash script encoded as a hex string for slurm to run",
+        )
+        parser.add_argument(
+            "--job-properties",
+            type=str,
+            required=True,
+        )
+        job_args = parser.parse_args(system_args)
+        if job_args.script_path:
+            script_path = Path(job_args.script_path)
+            with open(script_path, "r") as f:
+                script = f.read()
+        elif job_args.script_encoded:
+            script = binascii.unhexlify(job_args.script_encoded).decode()
+        else:
+            raise AssertionError(
+                "Either script-path or script-encoded is needed"
+            )
+
+        job_properties_json = job_args.job_properties
+        job_properties = V0036JobProperties.model_validate_json(
+            job_properties_json
+        )
+        return cls(script=script, job_properties=job_properties, slurm=slurm)
+
 
 if __name__ == "__main__":
 
     sys_args = sys.argv[1:]
-    parser = ArgumentParser()
-    parser.add_argument("--script", type=str, required=True)
-    parser.add_argument("--job-properties", type=str, required=True)
-    job_args = parser.parse_args(sys_args)
-    main_script = job_args.script
-    main_job_properties = V0036JobProperties.model_validate_json(
-        job_args.job_properties
-    )
     slurm_client_settings = SlurmClientSettings()
     main_slurm = slurm_client_settings.create_api_client()
-    main_slurm_job = SubmitSlurmJob(
-        slurm=main_slurm,
-        script=main_script,
-        job_properties=main_job_properties,
+    main_slurm_job = SubmitSlurmJob.from_args(
+        system_args=sys_args, slurm=main_slurm
     )
     main_slurm_job.run_job()

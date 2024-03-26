@@ -1,7 +1,9 @@
 """Tests methods in the submit_slurm_jobs module."""
 
+import binascii
 import os
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 from aind_slurm_rest import (
@@ -17,6 +19,9 @@ from aind_airflow_jobs.submit_slurm_job import (
     SlurmClientSettings,
     SubmitSlurmJob,
 )
+
+TEST_DIR = Path(os.path.dirname(os.path.realpath(__file__))) / "resources"
+EXAMPLE_SCRIPT = TEST_DIR / "test_slurm_script.txt"
 
 
 class TestSubmitSlurmJob(unittest.TestCase):
@@ -402,6 +407,68 @@ class TestSubmitSlurmJob(unittest.TestCase):
         slurm_job.run_job()
         mock_submit.assert_called()
         mock_monitor.assert_called()
+
+    @patch.dict(os.environ, EXAMPLE_ENV_VAR, clear=True)
+    def test_from_args_script_path(self):
+        """Tests that a job args can be input via the command line."""
+        slurm_client_settings = SlurmClientSettings()
+        slurm = slurm_client_settings.create_api_client()
+        job_properties_json = V0036JobProperties(
+            environment={}
+        ).model_dump_json()
+        sys_args = [
+            "--script-path",
+            str(EXAMPLE_SCRIPT),
+            "--job-properties",
+            job_properties_json,
+        ]
+        job = SubmitSlurmJob.from_args(slurm=slurm, system_args=sys_args)
+        expected_script = (
+            "#!/bin/bash\n"
+            "echo 'Hello World?' && sleep 120 && echo 'Goodbye!'"
+        )
+        self.assertEqual("some_part", job.job_properties.partition)
+        self.assertEqual(expected_script, job.script)
+
+    @patch.dict(os.environ, EXAMPLE_ENV_VAR, clear=True)
+    def test_from_args_script_encoded(self):
+        """Tests that a job args can be input via the command line using an
+        encoded script."""
+        expected_script = (
+            "#!/bin/bash\n"
+            "echo 'Hello World?' && sleep 120 && echo 'Goodbye!'"
+        )
+        script_encoded = binascii.hexlify(expected_script.encode()).decode()
+        slurm_client_settings = SlurmClientSettings()
+        slurm = slurm_client_settings.create_api_client()
+        job_properties_json = V0036JobProperties(
+            environment={}
+        ).model_dump_json()
+        sys_args = [
+            "--script-encoded",
+            script_encoded,
+            "--job-properties",
+            job_properties_json,
+        ]
+        job = SubmitSlurmJob.from_args(slurm=slurm, system_args=sys_args)
+        self.assertEqual("some_part", job.job_properties.partition)
+        self.assertEqual(expected_script, job.script)
+
+    @patch.dict(os.environ, EXAMPLE_ENV_VAR, clear=True)
+    def test_from_args_error(self):
+        """Tests that an error is raised if no script is set"""
+        slurm_client_settings = SlurmClientSettings()
+        slurm = slurm_client_settings.create_api_client()
+        job_properties_json = V0036JobProperties(
+            environment={}
+        ).model_dump_json()
+        sys_args = ["--job-properties", job_properties_json]
+        with self.assertRaises(Exception) as e:
+            SubmitSlurmJob.from_args(slurm=slurm, system_args=sys_args)
+        self.assertEqual(
+            "Either script-path or script-encoded is needed",
+            e.exception.args[0],
+        )
 
 
 if __name__ == "__main__":
