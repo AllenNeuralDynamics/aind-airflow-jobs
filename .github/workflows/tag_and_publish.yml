@@ -3,9 +3,7 @@ on:
   push:
     branches:
       - main
-# Remove line 61 to enable automated semantic version bumps.
-# Change line 67 from "if: false" to "if: true" to enable PyPI publishing. 
-# Requires that svc-aindscicomp be added as an admin to repo.
+
 jobs:
   update_badges:
     runs-on: ubuntu-latest
@@ -16,10 +14,10 @@ jobs:
         ref: ${{ env.DEFAULT_BRANCH }}
         fetch-depth: 0
         token: ${{ secrets.SERVICE_TOKEN }}
-    - name: Set up Python 3.8
+    - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
-        python-version: 3.8
+        python-version: '3.10'
     - name: Install dependencies
       run: | 
         python -m pip install -e .[dev] --no-cache-dir
@@ -62,28 +60,31 @@ jobs:
         add: '["README.md"]'
   tag:
     needs: update_badges
-    if: ${{github.event.repository.name == 'aind-library-template'}}
     uses: AllenNeuralDynamics/aind-github-actions/.github/workflows/tag.yml@main
     secrets:
       SERVICE_TOKEN: ${{ secrets.SERVICE_TOKEN }}
   publish:
-    needs: tag
-    if: false
     runs-on: ubuntu-latest
+    needs: tag
     steps:
       - uses: actions/checkout@v3
       - name: Pull latest changes
         run: git pull origin main
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v2
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Github Packages
+        uses: docker/login-action@v2
         with:
-          python-version: 3.8
-      - name: Install dependencies
-        run: |
-          pip install --upgrade setuptools wheel twine build
-          python -m build
-          twine check dist/*
-      - name: Publish on PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build image and push to GitHub Container Registry
+        uses: docker/build-push-action@v3
         with:
-          password: ${{ secrets.AIND_PYPI_TOKEN }}
+          # relative path to the place where source code with Dockerfile is located
+          context: .
+          push: true
+          tags: |
+            ghcr.io/allenneuraldynamics/aind-airflow-jobs:${{ needs.tag.outputs.new_version }}
+            ghcr.io/allenneuraldynamics/aind-airflow-jobs:latest
