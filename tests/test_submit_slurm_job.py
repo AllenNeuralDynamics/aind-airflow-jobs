@@ -32,15 +32,24 @@ class TestSubmitSlurmJob(unittest.TestCase):
         "SLURM_CLIENT_USERNAME": "username",
         "SLURM_CLIENT_PASSWORD": "password",
         "SLURM_CLIENT_ACCESS_TOKEN": "abc-123",
-        "SLURM_LOG_PATH": "/a/dir/to/write/logs/to",
-        "SLURM_PARTITION": "some_part",
     }
 
     @patch.dict(os.environ, EXAMPLE_ENV_VAR, clear=True)
     def test_default_job_properties(self):
         """Tests that default job properties are set correctly."""
         slurm_client_settings = SlurmClientSettings()
-        job_properties = V0036JobProperties(environment={})
+        job_properties = V0036JobProperties(
+            environment={
+                "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
+                "PATH": "/bin:/usr/bin/:/usr/local/bin/",
+            },
+            partition="some_part",
+            standard_error="/a/dir/to/write/logs/to/job_123_error.out",
+            standard_out="/a/dir/to/write/logs/to/job_123.out",
+            qos="dev",
+            name="job_123",
+            time_limit=360,
+        )
         script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
         slurm = slurm_client_settings.create_api_client()
         slurm_job = SubmitSlurmJob(
@@ -73,51 +82,6 @@ class TestSubmitSlurmJob(unittest.TestCase):
             slurm_job.job_properties.environment,
         )
         self.assertEqual(360, slurm_job.job_properties.time_limit)
-        self.assertEqual(50000, slurm_job.job_properties.memory_per_node)
-        self.assertEqual([1, 1], slurm_job.job_properties.nodes)
-        self.assertEqual(1, slurm_job.job_properties.tasks)
-
-    @patch.dict(os.environ, EXAMPLE_ENV_VAR, clear=True)
-    def test_mixed_job_properties(self):
-        """Tests that job properties are not overwritten."""
-        slurm_client_settings = SlurmClientSettings()
-        job_properties = V0036JobProperties(
-            environment={},
-            name="my_job",
-            partition="part2",
-            qos="prod",
-            time_limit=5,
-            memory_per_node=500,
-        )
-        script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
-        slurm = slurm_client_settings.create_api_client()
-        slurm_job = SubmitSlurmJob(
-            slurm=slurm,
-            script=script,
-            job_properties=job_properties,
-        )
-        self.assertEqual("part2", slurm_job.job_properties.partition)
-        self.assertEqual("prod", slurm_job.job_properties.qos)
-        self.assertTrue("my_job", slurm_job.job_properties.name)
-        self.assertEqual(
-            "/a/dir/to/write/logs/to/my_job.out",
-            slurm_job.job_properties.standard_out,
-        )
-        self.assertEqual(
-            "/a/dir/to/write/logs/to/my_job_error.out",
-            slurm_job.job_properties.standard_error,
-        )
-        self.assertEqual(
-            {
-                "PATH": "/bin:/usr/bin/:/usr/local/bin/",
-                "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
-            },
-            slurm_job.job_properties.environment,
-        )
-        self.assertEqual(5, slurm_job.job_properties.time_limit)
-        self.assertEqual(500, slurm_job.job_properties.memory_per_node)
-        self.assertEqual([1, 1], slurm_job.job_properties.nodes)
-        self.assertEqual(1, slurm_job.job_properties.tasks)
 
     @patch.dict(os.environ, EXAMPLE_ENV_VAR, clear=True)
     @patch("aind_slurm_rest.api.slurm_api.SlurmApi.slurmctld_submit_job_0")
@@ -129,7 +93,18 @@ class TestSubmitSlurmJob(unittest.TestCase):
             errors=[V0036Error(error="An error occurred.")]
         )
         slurm_client_settings = SlurmClientSettings()
-        job_properties = V0036JobProperties(environment={})
+        job_properties = V0036JobProperties(
+            environment={
+                "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
+                "PATH": "/bin:/usr/bin/:/usr/local/bin/",
+            },
+            partition="some_part",
+            standard_error="/a/dir/to/write/logs/to/job_123_error.out",
+            standard_out="/a/dir/to/write/logs/to/job_123.out",
+            qos="dev",
+            name="job_123",
+            time_limit=360,
+        )
         script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
         slurm = slurm_client_settings.create_api_client()
         slurm_job = SubmitSlurmJob(
@@ -154,7 +129,18 @@ class TestSubmitSlurmJob(unittest.TestCase):
             errors=[], job_id=12345
         )
         slurm_client_settings = SlurmClientSettings()
-        job_properties = V0036JobProperties(environment={})
+        job_properties = V0036JobProperties(
+            environment={
+                "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
+                "PATH": "/bin:/usr/bin/:/usr/local/bin/",
+            },
+            partition="some_part",
+            standard_error="/a/dir/to/write/logs/to/job_123_error.out",
+            standard_out="/a/dir/to/write/logs/to/job_123.out",
+            qos="dev",
+            name="job_123",
+            time_limit=360,
+        )
         script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
         slurm = slurm_client_settings.create_api_client()
         slurm_job = SubmitSlurmJob(
@@ -216,7 +202,18 @@ class TestSubmitSlurmJob(unittest.TestCase):
             ),
         ]
         slurm_client_settings = SlurmClientSettings()
-        job_properties = V0036JobProperties(environment={}, name="mock_job")
+        job_properties = V0036JobProperties(
+            environment={
+                "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
+                "PATH": "/bin:/usr/bin/:/usr/local/bin/",
+            },
+            partition="some_part",
+            standard_error="/a/dir/to/write/logs/to/job_123_error.out",
+            standard_out="/a/dir/to/write/logs/to/job_123.out",
+            qos="dev",
+            name="mock_job",
+            time_limit=360,
+        )
         script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
         slurm = slurm_client_settings.create_api_client()
         slurm_job = SubmitSlurmJob(
@@ -275,7 +272,18 @@ class TestSubmitSlurmJob(unittest.TestCase):
             )
         ]
         slurm_client_settings = SlurmClientSettings()
-        job_properties = V0036JobProperties(environment={}, name="mock_job")
+        job_properties = V0036JobProperties(
+            environment={
+                "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
+                "PATH": "/bin:/usr/bin/:/usr/local/bin/",
+            },
+            partition="some_part",
+            standard_error="/a/dir/to/write/logs/to/job_123_error.out",
+            standard_out="/a/dir/to/write/logs/to/job_123.out",
+            qos="dev",
+            name="mock_job",
+            time_limit=360,
+        )
         script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
         slurm = slurm_client_settings.create_api_client()
         slurm_job = SubmitSlurmJob(
@@ -353,7 +361,18 @@ class TestSubmitSlurmJob(unittest.TestCase):
             ),
         ]
         slurm_client_settings = SlurmClientSettings()
-        job_properties = V0036JobProperties(environment={}, name="mock_job")
+        job_properties = V0036JobProperties(
+            environment={
+                "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
+                "PATH": "/bin:/usr/bin/:/usr/local/bin/",
+            },
+            partition="some_part",
+            standard_error="/a/dir/to/write/logs/to/job_123_error.out",
+            standard_out="/a/dir/to/write/logs/to/job_123.out",
+            qos="dev",
+            name="mock_job",
+            time_limit=360,
+        )
         script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
         slurm = slurm_client_settings.create_api_client()
         slurm_job = SubmitSlurmJob(
@@ -395,7 +414,18 @@ class TestSubmitSlurmJob(unittest.TestCase):
     def test_run_job(self, mock_monitor: MagicMock, mock_submit: MagicMock):
         """Tests that run_job calls right methods."""
         slurm_client_settings = SlurmClientSettings()
-        job_properties = V0036JobProperties(environment={})
+        job_properties = V0036JobProperties(
+            environment={
+                "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
+                "PATH": "/bin:/usr/bin/:/usr/local/bin/",
+            },
+            partition="some_part",
+            standard_error="/a/dir/to/write/logs/to/job_123_error.out",
+            standard_out="/a/dir/to/write/logs/to/job_123.out",
+            qos="dev",
+            name="job_123",
+            time_limit=360,
+        )
         script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
         slurm = slurm_client_settings.create_api_client()
         slurm_job = SubmitSlurmJob(
@@ -414,7 +444,16 @@ class TestSubmitSlurmJob(unittest.TestCase):
         slurm_client_settings = SlurmClientSettings()
         slurm = slurm_client_settings.create_api_client()
         job_properties_json = V0036JobProperties(
-            environment={}
+            environment={
+                "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
+                "PATH": "/bin:/usr/bin/:/usr/local/bin/",
+            },
+            partition="some_part",
+            standard_error="/a/dir/to/write/logs/to/job_123_error.out",
+            standard_out="/a/dir/to/write/logs/to/job_123.out",
+            qos="dev",
+            name="job_123",
+            time_limit=360,
         ).model_dump_json()
         sys_args = [
             "--script-path",
@@ -442,7 +481,16 @@ class TestSubmitSlurmJob(unittest.TestCase):
         slurm_client_settings = SlurmClientSettings()
         slurm = slurm_client_settings.create_api_client()
         job_properties_json = V0036JobProperties(
-            environment={}
+            environment={
+                "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
+                "PATH": "/bin:/usr/bin/:/usr/local/bin/",
+            },
+            partition="some_part",
+            standard_error="/a/dir/to/write/logs/to/job_123_error.out",
+            standard_out="/a/dir/to/write/logs/to/job_123.out",
+            qos="dev",
+            name="job_123",
+            time_limit=360,
         ).model_dump_json()
         sys_args = [
             "--script-encoded",
@@ -460,7 +508,16 @@ class TestSubmitSlurmJob(unittest.TestCase):
         slurm_client_settings = SlurmClientSettings()
         slurm = slurm_client_settings.create_api_client()
         job_properties_json = V0036JobProperties(
-            environment={}
+            environment={
+                "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
+                "PATH": "/bin:/usr/bin/:/usr/local/bin/",
+            },
+            partition="some_part",
+            standard_error="/a/dir/to/write/logs/to/job_123_error.out",
+            standard_out="/a/dir/to/write/logs/to/job_123.out",
+            qos="dev",
+            name="job_123",
+            time_limit=360,
         ).model_dump_json()
         sys_args = ["--job-properties", job_properties_json]
         with self.assertRaises(Exception) as e:
