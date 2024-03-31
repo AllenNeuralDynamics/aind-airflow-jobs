@@ -5,12 +5,10 @@ import json
 import logging
 import sys
 from argparse import ArgumentParser
-from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from time import sleep
-from typing import Dict, List
-from uuid import uuid4
+from typing import List
 
 from aind_slurm_rest import ApiClient as Client
 from aind_slurm_rest import Configuration as Config
@@ -18,7 +16,7 @@ from aind_slurm_rest import V0036JobSubmissionResponse
 from aind_slurm_rest.api.slurm_api import SlurmApi
 from aind_slurm_rest.models.v0036_job_properties import V0036JobProperties
 from aind_slurm_rest.models.v0036_job_submission import V0036JobSubmission
-from pydantic import Field, SecretStr
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logging.basicConfig(level="INFO")
@@ -55,34 +53,6 @@ class SlurmClientSettings(BaseSettings):
             header_value=self.access_token.get_secret_value(),
         )
         return slurm
-
-
-class DefaultSlurmSettings(BaseSettings):
-    """Configurations with default values or expected to be pulled from env
-    vars."""
-
-    model_config = SettingsConfigDict(env_prefix="SLURM_")
-    log_path: str
-    partition: str
-    name: str = Field(
-        default_factory=lambda: (
-            f"job"
-            f"_{str(int(datetime.utcnow().timestamp()))}"
-            f"_{str(uuid4())[0:5]}"
-        )
-    )
-    qos: str = Field(default="dev")
-    environment: Dict[str, str] = Field(
-        default={
-            "PATH": "/bin:/usr/bin/:/usr/local/bin/",
-            "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
-        }
-    )
-    memory_per_node: int = Field(default=50000)
-    tasks: int = Field(default=1)
-    minimum_cpus_per_node: int = Field(default=1)
-    nodes: List[int] = Field(default=[1, 1])
-    time_limit: int = Field(default=360)
 
 
 class JobState(str, Enum):
@@ -196,53 +166,8 @@ class SubmitSlurmJob:
         """
         self.slurm = slurm
         self.job_properties = job_properties
-        self._set_default_job_props(self.job_properties)
         self.script = script
         self.polling_request_sleep = poll_job_interval
-
-    @staticmethod
-    def _set_default_job_props(job_properties: V0036JobProperties) -> None:
-        """
-        Set default values for the slurm job if they are not explicitly set
-        in the job_properties.
-        Parameters
-        ----------
-        job_properties : V0036JobProperties
-          The job_properties used to initially construct the class.
-        """
-        # Check if any default values need to be set
-        basic_attributes_to_check = [
-            "name",
-            "memory_per_node",
-            "tasks",
-            "minimum_cpus_per_node",
-            "nodes",
-            "time_limit",
-            "qos",
-            "partition",
-        ]
-        for attribute in basic_attributes_to_check:
-            if getattr(job_properties, attribute) is None:
-                setattr(
-                    job_properties,
-                    attribute,
-                    getattr(DefaultSlurmSettings(), attribute),
-                )
-        if (
-            job_properties.environment is None
-            or job_properties.environment == {}
-        ):
-            job_properties.environment = DefaultSlurmSettings().environment
-        if job_properties.standard_out is None:
-            job_properties.standard_out = str(
-                Path(DefaultSlurmSettings().log_path)
-                / f"{job_properties.name}.out"
-            )
-        if job_properties.standard_error is None:
-            job_properties.standard_error = str(
-                Path(DefaultSlurmSettings().log_path)
-                / f"{job_properties.name}_error.out"
-            )
 
     def _submit_job(self) -> V0036JobSubmissionResponse:
         """Submit the job to the slurm cluster."""
