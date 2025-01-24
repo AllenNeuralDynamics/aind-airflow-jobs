@@ -6,7 +6,7 @@ on:
 
 jobs:
   update_badges:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     continue-on-error: true
     steps:
     - uses: actions/checkout@v4
@@ -64,7 +64,7 @@ jobs:
     secrets:
       SERVICE_TOKEN: ${{ secrets.SERVICE_TOKEN }}
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: tag
     steps:
       - uses: actions/checkout@v4
@@ -90,7 +90,7 @@ jobs:
             ghcr.io/allenneuraldynamics/aind-airflow-jobs:latest
 
   pypi:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: tag
     steps:
       - uses: actions/checkout@v4
