@@ -17,7 +17,7 @@ readme = "README.md"
 dynamic = ["version"]
 
 dependencies = [
-    "aind-slurm-rest<1.0.0",
+    "aind-slurm-rest<0.2.1",
     "pydantic-settings",
     "pydantic"
 ]
