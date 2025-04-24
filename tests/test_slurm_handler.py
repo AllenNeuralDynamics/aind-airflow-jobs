@@ -2,7 +2,7 @@
 
 import os
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
@@ -42,20 +42,20 @@ class TestMethods(unittest.TestCase):
         """Tests create_slurm_environment_for_task method."""
 
         mock_uuid4.return_value = "b4082467-522e-411b-a714-22f62ae09014"
-        mock_datetime.utcnow.return_value = datetime(2025, 4, 23)
+        mock_datetime.utcnow.return_value = datetime(2025, 4, 23, tzinfo=timezone.utc)
         job = {"s3_prefix": "ecephys_123456_2020-10-10_10-10-10"}
         task_settings = {"logs_directory": "tests"}
         output = create_slurm_environment_for_task(
             job=job, task_settings=task_settings
         )
         expected_output = {
-            "name": "ecephys_123456_job_1745391600_b4082",
+            "name": "ecephys_123456_job_1745366400_b4082",
             "current_working_directory": ".",
             "standard_error": (
-                "tests/ecephys_123456_job_1745391600_b4082_error.out"
+                "tests/ecephys_123456_job_1745366400_b4082_error.out"
             ),
             "standard_output": (
-                "tests/ecephys_123456_job_1745391600_b4082.out"
+                "tests/ecephys_123456_job_1745366400_b4082.out"
             ),
         }
         self.assertEqual(
@@ -70,17 +70,17 @@ class TestMethods(unittest.TestCase):
         """Tests create_slurm_environment_for_task method when no s3_prefix"""
 
         mock_uuid4.return_value = "b4082467-522e-411b-a714-22f62ae09014"
-        mock_datetime.utcnow.return_value = datetime(2025, 4, 23)
+        mock_datetime.utcnow.return_value = datetime(2025, 4, 23, tzinfo=timezone.utc)
         job = dict()
         task_settings = {"logs_directory": "tests"}
         output = create_slurm_environment_for_task(
             job=job, task_settings=task_settings, name_suffix="cf"
         )
         expected_output = {
-            "name": "job_1745391600_b4082_cf",
+            "name": "job_1745366400_b4082_cf",
             "current_working_directory": ".",
-            "standard_error": ("tests/job_1745391600_b4082_cf_error.out"),
-            "standard_output": ("tests/job_1745391600_b4082_cf.out"),
+            "standard_error": "tests/job_1745366400_b4082_cf_error.out",
+            "standard_output": "tests/job_1745366400_b4082_cf.out",
         }
         self.assertEqual(
             expected_output, output.model_dump(mode="json", exclude_none=True)
