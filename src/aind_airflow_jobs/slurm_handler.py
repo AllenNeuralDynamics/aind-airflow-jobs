@@ -180,6 +180,10 @@ class JobState(str, Enum):
     # Job terminated with non-zero exit code or other failure condition.
     F = "FAILED"
 
+    # Failed to launch on the chosen node(s); includes prolog failure and
+    # other failure conditions
+    LF = "LAUNCH_FAILED"
+
     # Job terminated due to failure of one or more allocated nodes.
     NF = "NODE_FAIL"
 
@@ -189,6 +193,9 @@ class JobState(str, Enum):
     # Job is awaiting resource allocation.
     PD = "PENDING"
 
+    # Job has been allocated powered down nodes and is waiting for them to boot
+    PO = "POWER_UP_NODE"
+
     # Job terminated due to preemption.
     PR = "PREEMPTED"
 
@@ -197,6 +204,9 @@ class JobState(str, Enum):
 
     # Job is being held after requested reservation was deleted.
     RD = "RESV_DEL_HOLD"
+
+    # Node configuration for job failed
+    RE = "RECONFIG_FAIL"
 
     # Job is being requeued by a federation.
     RF = "REQUEUE_FED"
@@ -221,7 +231,7 @@ class JobState(str, Enum):
     # exit value.
     SE = "SPECIAL_EXIT"
 
-    # Job is staging out files.
+    # Staging out data
     SO = "STAGE_OUT"
 
     # Job has an allocation, but execution has been stopped with SIGSTOP
@@ -235,7 +245,28 @@ class JobState(str, Enum):
     # Job terminated upon reaching its time limit.
     TO = "TIMEOUT"
 
-    FINISHED_CODES = [BF, CA, CD, DL, F, NF, OOM, PR, RS, RV, SE, ST, S, TO]
+    # Update db
+    UD = "UPDATE_DB"
+
+    FINISHED_CODES = [
+        BF,
+        CA,
+        CD,
+        DL,
+        F,
+        NF,
+        OOM,
+        PR,
+        RE,
+        RS,
+        RV,
+        SE,
+        ST,
+        S,
+        TO,
+    ]
+
+    ERROR_CODES = [BF, CA, DL, F, NF, OOM, PR, RE, RV, SE, ST, S, TO]
 
 
 class SubmitSlurmJobArray:
@@ -307,7 +338,7 @@ class SubmitSlurmJobArray:
             is_finished = reduce(lambda x, y: x and y, is_finished_list)
         job_status.update(most_recent_job_status)
         check_for_errors_list = [
-            s not in [JobState.CD, JobState.CG] for s in job_status.values()
+            s in JobState.ERROR_CODES for s in job_status.values()
         ]
         if not check_for_errors_list:
             is_error = True

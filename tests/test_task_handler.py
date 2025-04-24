@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, call, patch
 from aind_airflow_jobs.task_handler import (
     get_merged_task_settings,
     nested_update,
+    update_command_script,
 )
 
 
@@ -111,6 +112,36 @@ class TestMethods(unittest.TestCase):
             default_var=None,
             deserialize_json=True,
         )
+
+    def test_update_command_script(self):
+        """Tests update_command_script method."""
+
+        job_settings = {
+            "s3_location": "%S3_LOCATION",
+            "input_source": "%INPUT_SOURCE",
+            "output_location": "%OUTPUT_LOCATION",
+        }
+        input_script = (
+            "run --env_file %ENV_FILE docker://%IMAGE:%IMAGE_VERSION"
+            " --job_settings ' %JOB_SETTINGS '"
+        )
+        output = update_command_script(
+            command_script=input_script,
+            job_settings=job_settings,
+            image="example",
+            image_version="0.0.0",
+            s3_location="some_s3_location",
+            input_source="some_input_source",
+            output_location="some_output_location",
+            env_file="my_env",
+        )
+        expected_output = (
+            "run --env_file my_env docker://example:0.0.0 --job_settings"
+            ' \' {"s3_location": "some_s3_location",'
+            ' "input_source": "some_input_source",'
+            ' "output_location": "some_output_location"} \''
+        )
+        self.assertEqual(expected_output, output)
 
 
 if __name__ == "__main__":

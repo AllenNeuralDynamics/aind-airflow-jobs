@@ -6,10 +6,11 @@ from unittest.mock import MagicMock, call, patch
 from aind_airflow_jobs.alert_handler import (
     AlertType,
     get_job_info_from_context,
+    on_begin_or_end_alert,
     on_failure_or_retry_alert,
     on_failure_or_retry_log_alert,
     send_job_email,
-    send_log_message, on_begin_or_end_alert,
+    send_log_message,
 )
 
 

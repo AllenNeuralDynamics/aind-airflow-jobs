@@ -88,7 +88,6 @@ jobs:
           tags: |
             ghcr.io/allenneuraldynamics/aind-airflow-jobs:${{ needs.tag.outputs.new_version }}
             ghcr.io/allenneuraldynamics/aind-airflow-jobs:latest
-
   pypi:
     runs-on: ubuntu-22.04
     needs: tag

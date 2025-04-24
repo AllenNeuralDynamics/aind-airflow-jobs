@@ -62,6 +62,30 @@ class TestMethods(unittest.TestCase):
             expected_output, output.model_dump(mode="json", exclude_none=True)
         )
 
+    @patch("aind_airflow_jobs.slurm_handler.uuid4")
+    @patch("aind_airflow_jobs.slurm_handler.datetime")
+    def test_create_slurm_environment_for_task_no_prefix(
+        self, mock_datetime: MagicMock, mock_uuid4: MagicMock
+    ):
+        """Tests create_slurm_environment_for_task method when no s3_prefix"""
+
+        mock_uuid4.return_value = "b4082467-522e-411b-a714-22f62ae09014"
+        mock_datetime.utcnow.return_value = datetime(2025, 4, 23)
+        job = dict()
+        task_settings = {"logs_directory": "tests"}
+        output = create_slurm_environment_for_task(
+            job=job, task_settings=task_settings, name_suffix="cf"
+        )
+        expected_output = {
+            "name": "job_1745391600_b4082_cf",
+            "current_working_directory": ".",
+            "standard_error": ("tests/job_1745391600_b4082_cf_error.out"),
+            "standard_output": ("tests/job_1745391600_b4082_cf.out"),
+        }
+        self.assertEqual(
+            expected_output, output.model_dump(mode="json", exclude_none=True)
+        )
+
     def test_read_json_file(self):
         """Tests read_json_file"""
 
@@ -160,8 +184,9 @@ class TestSlurmHook(unittest.TestCase):
 class TestSubmitSlurmJobArray(unittest.TestCase):
     """Test methods in SubmitSlurmJobArray class"""
 
-    def test_default_job_properties(self):
-        """Tests that default job properties are set correctly."""
+    @classmethod
+    def setUpClass(cls):
+        """Sets up objects to be shared across tests."""
         slurm_client_settings = SlurmClientSettings(
             host="http://example.com", username="user", access_token="abc-123"
         )
@@ -171,8 +196,8 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
                 "LD_LIBRARY_PATH=/lib/:/lib64/:/usr/local/lib",
             ],
             partition="some_part",
-            standard_error="tests/job_123_error.out",
-            standard_output="tests/job_123.out",
+            standard_error="tests/%x_%j_error.out",
+            standard_output="tests/%x_%j.out",
             qos="dev",
             name="job_123",
             current_working_directory=".",
@@ -187,18 +212,20 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
             remote_mnt_dir="",
             local_mnt_dir="",
         )
+        cls.slurm_job = slurm_job
+
+    def test_default_job_properties(self):
+        """Tests that default job properties are set correctly."""
+
+        slurm_job = self.slurm_job
         self.assertEqual("some_part", slurm_job.job_properties.partition)
         self.assertEqual("dev", slurm_job.job_properties.qos)
-        self.assertTrue(slurm_job.job_properties.name.startswith("job_123"))
-        self.assertTrue(
-            slurm_job.job_properties.standard_output.startswith(
-                "tests/job_123.out"
-            )
+        self.assertEqual("job_123", slurm_job.job_properties.name, "job_123")
+        self.assertEqual(
+            "tests/%x_%j.out", slurm_job.job_properties.standard_output
         )
-        self.assertTrue(
-            slurm_job.job_properties.standard_error.startswith(
-                "tests/job_123_error.out"
-            )
+        self.assertEqual(
+            "tests/%x_%j_error.out", slurm_job.job_properties.standard_error
         )
         self.assertEqual(
             [
@@ -208,6 +235,83 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
             slurm_job.job_properties.environment,
         )
         self.assertEqual(360, slurm_job.job_properties.time_limit.number)
+
+    def test_check_job_status(self):
+        """Tests _check_job_status method"""
+
+        job_status = dict()
+
+        job_response = V0040OpenapiJobInfoResp(
+            jobs=[
+                V0040JobInfo(
+                    job_id=1,
+                    job_state=[JobState.R.value],
+                    submit_time=V0040Uint64NoVal(set=True, number=0),
+                ),
+                V0040JobInfo(
+                    job_id=2,
+                    job_state=[JobState.R.value],
+                    submit_time=V0040Uint64NoVal(set=True, number=0),
+                ),
+            ],
+            last_backfill=V0040Uint64NoVal(),
+            last_update=V0040Uint64NoVal(),
+        )
+
+        job = self.slurm_job
+        output = job._check_job_status(
+            job_response=job_response, job_status=job_status
+        )
+        self.assertEqual((False, False), output)
+        self.assertEqual({1: "RUNNING", 2: "RUNNING"}, job_status)
+
+    def test_check_job_status_completed_with_errors(self):
+        """Tests _check_job_status method when there was an error"""
+
+        # previous job_status that will be updated with new info
+        job_status = {1: "RUNNING", 2: "RUNNING"}
+
+        job_response = V0040OpenapiJobInfoResp(
+            jobs=[
+                V0040JobInfo(
+                    job_id=1,
+                    job_state=[JobState.CD.value],
+                    submit_time=V0040Uint64NoVal(set=True, number=0),
+                ),
+                V0040JobInfo(
+                    job_id=2,
+                    job_state=[JobState.F.value],
+                    submit_time=V0040Uint64NoVal(set=True, number=0),
+                ),
+            ],
+            last_backfill=V0040Uint64NoVal(),
+            last_update=V0040Uint64NoVal(),
+        )
+
+        job = self.slurm_job
+        output = job._check_job_status(
+            job_response=job_response, job_status=job_status
+        )
+        self.assertEqual((True, True), output)
+        self.assertEqual({1: "COMPLETED", 2: "FAILED"}, job_status)
+
+    def test_check_job_status_when_no_response(self):
+        """Tests _check_job_status method when there was an error"""
+
+        job_status = dict()
+
+        job_response = V0040OpenapiJobInfoResp(
+            jobs=[],
+            last_backfill=V0040Uint64NoVal(),
+            last_update=V0040Uint64NoVal(),
+        )
+
+        job = self.slurm_job
+        output = job._check_job_status(
+            job_response=job_response, job_status=job_status
+        )
+        self.assertEqual((True, True), output)
+        self.assertEqual(dict(), job_status)
 
     @patch(
         "aind_slurm_rest.api.slurm_api.SlurmApi.slurm_v0040_post_job_submit"
@@ -221,31 +325,7 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         mock_submit_job.return_value = V0040OpenapiJobSubmitResponse(
             errors=[V0040OpenapiError(error="An error occurred.")]
         )
-        slurm_client_settings = SlurmClientSettings(
-            host="http://example.com", username="user", access_token="abc-123"
-        )
-        job_properties = V0040JobDescMsg(
-            environment=[
-                "PATH=/bin:/usr/bin/:/usr/local/bin/",
-                "LD_LIBRARY_PATH=/lib/:/lib64/:/usr/local/lib",
-            ],
-            partition="some_part",
-            standard_error="tests/job_123_error.out",
-            standard_output="tests/job_123.out",
-            qos="dev",
-            name="job_123",
-            current_working_directory=".",
-            time_limit=V0040Uint32NoVal(set=True, number=360),
-        )
-        script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
-        slurm = slurm_client_settings.create_api_client()
-        slurm_job = SubmitSlurmJobArray(
-            slurm=slurm,
-            script=script,
-            job_properties=job_properties,
-            remote_mnt_dir="",
-            local_mnt_dir="",
-        )
+        slurm_job = self.slurm_job
         with self.assertRaises(Exception) as e:
             slurm_job._submit_job()
         expected_errors = (
@@ -264,31 +344,7 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         mock_submit_job.return_value = V0040OpenapiJobSubmitResponse(
             job_id=12345
         )
-        slurm_client_settings = SlurmClientSettings(
-            host="http://example.com", username="user", access_token="abc-123"
-        )
-        job_properties = V0040JobDescMsg(
-            environment=[
-                "PATH=/bin:/usr/bin/:/usr/local/bin/",
-                "LD_LIBRARY_PATH=/lib/:/lib64/:/usr/local/lib",
-            ],
-            partition="some_part",
-            standard_error="tests/job_123_error.out",
-            standard_output="tests/job_123.out",
-            qos="dev",
-            name="job_123",
-            current_working_directory=".",
-            time_limit=V0040Uint32NoVal(set=True, number=360),
-        )
-        script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
-        slurm = slurm_client_settings.create_api_client()
-        slurm_job = SubmitSlurmJobArray(
-            slurm=slurm,
-            script=script,
-            job_properties=job_properties,
-            remote_mnt_dir="",
-            local_mnt_dir="",
-        )
+        slurm_job = self.slurm_job
         response = slurm_job._submit_job()
         expected_response = V0040OpenapiJobSubmitResponse(job_id=12345)
         self.assertEqual(expected_response, response)
@@ -356,31 +412,7 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
                 ],
             ),
         ]
-        slurm_client_settings = SlurmClientSettings(
-            host="http://example.com", username="user", access_token="abc-123"
-        )
-        job_properties = V0040JobDescMsg(
-            environment=[
-                "PATH=/bin:/usr/bin/:/usr/local/bin/",
-                "LD_LIBRARY_PATH=/lib/:/lib64/:/usr/local/lib",
-            ],
-            partition="some_part",
-            standard_error="tests/job_123_error.out",
-            standard_output="tests/job_123.out",
-            qos="dev",
-            name="job_123",
-            current_working_directory=".",
-            time_limit=V0040Uint32NoVal(set=True, number=360),
-        )
-        script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
-        slurm = slurm_client_settings.create_api_client()
-        slurm_job = SubmitSlurmJobArray(
-            slurm=slurm,
-            script=script,
-            job_properties=job_properties,
-            remote_mnt_dir="",
-            local_mnt_dir="",
-        )
+        slurm_job = self.slurm_job
         slurm_job._monitor_job(submit_response=submit_job_response)
 
         mock_sleep.assert_has_calls([call(120), call(120)])
@@ -455,31 +487,7 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
                 ],
             ),
         ]
-        slurm_client_settings = SlurmClientSettings(
-            host="http://example.com", username="user", access_token="abc-123"
-        )
-        job_properties = V0040JobDescMsg(
-            environment=[
-                "PATH=/bin:/usr/bin/:/usr/local/bin/",
-                "LD_LIBRARY_PATH=/lib/:/lib64/:/usr/local/lib",
-            ],
-            partition="some_part",
-            standard_error="tests/job_123_error.out",
-            standard_output="tests/job_123.out",
-            qos="dev",
-            name="job_123",
-            current_working_directory=".",
-            time_limit=V0040Uint32NoVal(set=True, number=360),
-        )
-        script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
-        slurm = slurm_client_settings.create_api_client()
-        slurm_job = SubmitSlurmJobArray(
-            slurm=slurm,
-            script=script,
-            job_properties=job_properties,
-            remote_mnt_dir="",
-            local_mnt_dir="",
-        )
+        slurm_job = self.slurm_job
         with self.assertRaises(Exception) as e:
             slurm_job._monitor_job(submit_response=submit_job_response)
 
@@ -509,32 +517,7 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
 
     def test_std_err_filepath(self):
         """Tests _std_err_filepath method"""
-
-        slurm_client_settings = SlurmClientSettings(
-            host="http://example.com", username="user", access_token="abc-123"
-        )
-        job_properties = V0040JobDescMsg(
-            environment=[
-                "PATH=/bin:/usr/bin/:/usr/local/bin/",
-                "LD_LIBRARY_PATH=/lib/:/lib64/:/usr/local/lib",
-            ],
-            partition="some_part",
-            standard_error="tests/%x_%j_error.out",
-            standard_output="tests/%x_%j.out",
-            qos="dev",
-            name="job_123",
-            current_working_directory=".",
-            time_limit=V0040Uint32NoVal(set=True, number=360),
-        )
-        script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
-        slurm = slurm_client_settings.create_api_client()
-        slurm_job = SubmitSlurmJobArray(
-            slurm=slurm,
-            script=script,
-            job_properties=job_properties,
-            remote_mnt_dir="",
-            local_mnt_dir="",
-        )
+        slurm_job = self.slurm_job
 
         output_path = slurm_job._std_err_filepath(job_id=12345)
         expected_path = "tests/job_123_12345_error.out"
@@ -550,31 +533,7 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         mock_submit: MagicMock,
     ):
         """Tests that run_job calls right methods."""
-        slurm_client_settings = SlurmClientSettings(
-            host="http://example.com", username="user", access_token="abc-123"
-        )
-        job_properties = V0040JobDescMsg(
-            environment=[
-                "PATH=/bin:/usr/bin/:/usr/local/bin/",
-                "LD_LIBRARY_PATH=/lib/:/lib64/:/usr/local/lib",
-            ],
-            partition="some_part",
-            standard_error="tests/job_123_error.out",
-            standard_output="tests/job_123.out",
-            qos="dev",
-            name="job_123",
-            current_working_directory=".",
-            time_limit=V0040Uint32NoVal(set=True, number=360),
-        )
-        script = " ".join(["#!/bin/bash", "\necho", "'Hello World?'"])
-        slurm = slurm_client_settings.create_api_client()
-        slurm_job = SubmitSlurmJobArray(
-            slurm=slurm,
-            script=script,
-            job_properties=job_properties,
-            remote_mnt_dir="",
-            local_mnt_dir="",
-        )
+        slurm_job = self.slurm_job
 
         slurm_job.run_job()
         mock_submit.assert_called()
