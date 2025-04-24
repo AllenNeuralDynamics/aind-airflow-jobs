@@ -19,7 +19,7 @@ dynamic = ["version"]
 dependencies = [
     "google-re2==1.0",
     "apache-airflow==2.8.1",
-    "apache-airflow-providers-ssh",
+    "apache-airflow-providers-ssh==3.14.0",
     "aind-slurm-rest==1.0.3",
     "python-logging-loki==0.3.1",
     "pydantic-settings==2.2.1",
