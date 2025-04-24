@@ -1,0 +1,26 @@
+INFO:    Using cached SIF image
+WARNING: No current working directory set: skipping mount
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/local/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/usr/local/lib/python3.10/site-packages/aind_ephys_transformation/ephys_job.py", line 495, in <module>
+    job_response = job.run_job()
+  File "/usr/local/lib/python3.10/site-packages/aind_ephys_transformation/ephys_job.py", line 472, in run_job
+    self._compress_raw_data()
+  File "/usr/local/lib/python3.10/site-packages/aind_ephys_transformation/ephys_job.py", line 426, in _compress_raw_data
+    self._copy_and_clip_data(
+  File "/usr/local/lib/python3.10/site-packages/aind_ephys_transformation/ephys_job.py", line 324, in _copy_and_clip_data
+    for stream in stream_gen:
+  File "/usr/local/lib/python3.10/site-packages/aind_ephys_transformation/ephys_job.py", line 174, in _get_streams_to_clip
+    n_chan = se.read_openephys(
+  File "/usr/local/lib/python3.10/site-packages/spikeinterface/extractors/neoextractors/openephys.py", line 350, in read_openephys
+    recording = OpenEphysBinaryRecordingExtractor(folder_path, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/spikeinterface/extractors/neoextractors/openephys.py", line 201, in __init__
+    self.set_probe(probe, in_place=True, group_mode="by_shank")
+  File "/usr/local/lib/python3.10/site-packages/spikeinterface/core/baserecordingsnippets.py", line 101, in set_probe
+    return self._set_probes(probegroup, group_mode=group_mode, in_place=in_place)
+  File "/usr/local/lib/python3.10/site-packages/spikeinterface/core/baserecordingsnippets.py", line 182, in _set_probes
+    raise ValueError(error_msg)
+ValueError: The given Probe either has 'device_channel_indices' that does not match channel count
