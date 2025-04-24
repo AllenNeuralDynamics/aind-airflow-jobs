@@ -42,7 +42,9 @@ class TestMethods(unittest.TestCase):
         """Tests create_slurm_environment_for_task method."""
 
         mock_uuid4.return_value = "b4082467-522e-411b-a714-22f62ae09014"
-        mock_datetime.utcnow.return_value = datetime(2025, 4, 23, tzinfo=timezone.utc)
+        mock_datetime.utcnow.return_value = datetime(
+            2025, 4, 23, tzinfo=timezone.utc
+        )
         job = {"s3_prefix": "ecephys_123456_2020-10-10_10-10-10"}
         task_settings = {"logs_directory": "tests"}
         output = create_slurm_environment_for_task(
@@ -70,7 +72,9 @@ class TestMethods(unittest.TestCase):
         """Tests create_slurm_environment_for_task method when no s3_prefix"""
 
         mock_uuid4.return_value = "b4082467-522e-411b-a714-22f62ae09014"
-        mock_datetime.utcnow.return_value = datetime(2025, 4, 23, tzinfo=timezone.utc)
+        mock_datetime.utcnow.return_value = datetime(
+            2025, 4, 23, tzinfo=timezone.utc
+        )
         job = dict()
         task_settings = {"logs_directory": "tests"}
         output = create_slurm_environment_for_task(
