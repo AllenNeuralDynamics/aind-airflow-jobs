@@ -184,6 +184,31 @@ class TestSlurmHook(unittest.TestCase):
             "abc-123", slurm_hook.conn.api_client.configuration.access_token
         )
 
+    @patch(
+        "aind_airflow_jobs.slurm_handler.Connection"
+        ".get_connection_from_secrets"
+    )
+    def test_class_construct_custom_host(
+        self,
+        mock_connection: MagicMock,
+    ):
+        """Tests class constructor."""
+        mock_conn = MagicMock(
+            conn_type="http",
+            host="something",
+            login="user",
+            extra_dejson={"token": "abc-123"},
+        )
+        mock_connection.return_value = mock_conn
+
+        slurm_hook = SlurmHook(host="http://example.com")
+        self.assertEqual(
+            "user", slurm_hook.conn.api_client.configuration.username
+        )
+        self.assertEqual(
+            "abc-123", slurm_hook.conn.api_client.configuration.access_token
+        )
+
 
 class TestSubmitSlurmJobArray(unittest.TestCase):
     """Test methods in SubmitSlurmJobArray class"""

@@ -126,10 +126,11 @@ class SlurmClientSettings(BaseSettings):
 class SlurmHook(BaseHook):
     """Hook to interface with Slurm over REST."""
 
-    def __init__(self, conn_id="slurm/uri"):
+    def __init__(self, conn_id: str = "slurm/uri", host: Optional[str] = None):
         """Class constructor"""
         super().__init__()
         self.conn_id = conn_id
+        self.host = host
         self.conn = self.get_conn()
 
     def get_conn(self) -> SlurmApi:
@@ -141,7 +142,10 @@ class SlurmHook(BaseHook):
 
         """
         slurm_conn = Connection.get_connection_from_secrets(self.conn_id)
-        slurm_host = f"{slurm_conn.conn_type}://{slurm_conn.host}"
+        if self.host is None:
+            slurm_host = f"{slurm_conn.conn_type}://{slurm_conn.host}"
+        else:
+            slurm_host = self.host
         slurm_client_settings = SlurmClientSettings(
             host=slurm_host,
             username=slurm_conn.login,
