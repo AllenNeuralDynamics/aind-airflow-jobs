@@ -389,7 +389,9 @@ class SubmitSlurmJobArray:
         job_response = self.slurm.slurm_v0040_get_job(job_id=str(job_id))
         errors = job_response.errors
         start_time = (
-            None if not job_response.jobs else job_response.jobs[0].start_time
+            None
+            if not job_response.jobs or job_response.jobs[0].start_time is None
+            else job_response.jobs[0].start_time.number
         )
         job_states = (
             None
@@ -416,7 +418,8 @@ class SubmitSlurmJobArray:
             start_time = (
                 None
                 if not job_response.jobs
-                else job_response.jobs[0].start_time
+                or job_response.jobs[0].start_time is None
+                else job_response.jobs[0].start_time.number
             )
             job_states = (
                 None
@@ -428,7 +431,7 @@ class SubmitSlurmJobArray:
                     "job_id": job_id,
                     "job_name": job_name,
                     "job_states": job_states,
-                    "start_time": start_time.number,
+                    "start_time": start_time,
                 }
             )
             logging.info(message)
