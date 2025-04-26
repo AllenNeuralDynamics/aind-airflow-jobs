@@ -386,7 +386,7 @@ class SubmitSlurmJobArray:
 
         job_id = submit_response.job_id
         job_name = self.job_properties.name
-        job_response = self.slurm.slurm_v0040_get_job(job_id=job_id)
+        job_response = self.slurm.slurm_v0040_get_job(job_id=str(job_id))
         errors = job_response.errors
         start_time = (
             None if not job_response.jobs else job_response.jobs[0].start_time
@@ -411,7 +411,7 @@ class SubmitSlurmJobArray:
         )
         while not is_finished and not errors:
             sleep(self.polling_request_sleep)
-            job_response = self.slurm.slurm_v0040_get_job(job_id=job_id)
+            job_response = self.slurm.slurm_v0040_get_job(job_id=str(job_id))
             errors = job_response.errors
             start_time = (
                 None
