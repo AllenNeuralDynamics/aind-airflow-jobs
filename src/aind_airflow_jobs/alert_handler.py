@@ -28,13 +28,18 @@ class AlertType(str, Enum):
         }[self.value]
 
 
-def send_job_email(alert_type: AlertType, job: Dict[str, Any]) -> None:
+def send_job_email(
+    alert_type: AlertType,
+    job: Dict[str, Any],
+    task_id: Optional[str] = None,
+) -> None:
     """
-    Send an email given the alert type and job.
+    Send an email given the alert type, job, and optional task_id.
     Parameters
     ----------
     alert_type : AlertType
     job : Dict[str, Any]
+    task_id : Optional[str]
 
     Returns
     -------
@@ -49,10 +54,25 @@ def send_job_email(alert_type: AlertType, job: Dict[str, Any]) -> None:
         or alert_type.ALL.value in job.get("email_notification_types", [])
     ):
         to_email = job.get("user_email")
-        body = (
-            f"An airflow pipeline {reason} with the following conf\n\n"
-            f"Conf: {job}\n\n"
+        body = ""
+        if alert_type in [AlertType.FAIL, AlertType.RETRY]:
+            body += (
+                "Please check the AIND Data Transfer Service "
+                '<a href="http://aind-data-transfer-service/jobs">Job '
+                "Status Page</a> for more details or reach out to a "
+                "Scientific Computing engineer for assistance.<br/><br/>"
+            )
+
+        body += (
+            f"An airflow pipeline {reason} with the following "
+            f"configuration:<br/><br/>"
         )
+
+        if task_id:
+            body += f"Task: {task_id}<br/><br/>"
+
+        body += f"Configuration:<br/>{job}<br/><br/>"
+
         send_email(to=to_email, subject=subject, html_content=body)
 
 
@@ -135,7 +155,13 @@ def on_failure_or_retry_alert(
 
     """
     job = context["params"]
-    send_job_email(alert_type=alert_type, job=job)
+    task_id = context.get("task").task_id if context.get("task") else None
+
+    send_job_email(
+        alert_type=alert_type,
+        job=job,
+        task_id=task_id,
+    )
 
 
 def on_failure_or_retry_log_alert(
@@ -155,8 +181,14 @@ def on_failure_or_retry_log_alert(
     """
     job = context["params"]
     job_info = get_job_info_from_context(context)
+    task_id = context.get("task").task_id if context.get("task") else None
+
     send_log_message(job_info, log_level="ERROR")
-    send_job_email(alert_type=alert_type, job=job)
+    send_job_email(
+        alert_type=alert_type,
+        job=job,
+        task_id=task_id,
+    )
 
 
 def on_begin_or_end_alert(alert_type: AlertType, job: Dict[str, Any]) -> None:
