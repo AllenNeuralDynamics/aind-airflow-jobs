@@ -46,7 +46,6 @@ class TestLokiLoggerHook(unittest.TestCase):
     ):
         """Tests class constructor with custom host."""
 
-        mock_connection.return_value.get_uri.return_value = "something"
         mock_variable.return_value = "test"
         LokiLoggerHook(host="http://example.com")
         mock_loki_handler.assert_called_once_with(
@@ -54,6 +53,7 @@ class TestLokiLoggerHook(unittest.TestCase):
             version="1",
             tags={"application": "aind-airflow-service-test"},
         )
+        mock_connection.get_uri.assert_not_called()
 
 
 if __name__ == "__main__":
