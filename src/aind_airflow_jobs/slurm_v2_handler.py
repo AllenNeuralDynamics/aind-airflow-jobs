@@ -26,9 +26,10 @@ from aind_slurm_rest_v2.api.slurmdb_api import SlurmdbApi
 from aind_slurm_rest_v2.exceptions import NotFoundException
 from airflow.hooks.base import BaseHook
 from airflow.models import Connection
-from aind_airflow_jobs.hpc_handler import get_hpc_hook
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from aind_airflow_jobs.hpc_handler import get_hpc_hook
 
 
 def read_slurm_std_err(
@@ -93,7 +94,9 @@ def check_cache_job_submit_req(
         "minimum_nodes": 1,
         "array": None,
     }
-    new_job_props = job_properties.copy(deep=True, update=updated_settings)
+    new_job_props = job_properties.model_copy(
+        deep=True, update=updated_settings
+    )
     if "docker://" in command_script:
         new_command_script = (
             f"#!/bin/bash \nsingularity exec "
@@ -258,7 +261,9 @@ class JobState(str, Enum):
 class SlurmHook(BaseHook):
     """Hook to interface with Slurm REST API."""
 
-    def __init__(self, conn_id: str = "slurm2/uri", host: Optional[str] = None):
+    def __init__(
+        self, conn_id: str = "slurm2/uri", host: Optional[str] = None
+    ):
         """Class constructor"""
         super().__init__()
         self.conn_id = conn_id
