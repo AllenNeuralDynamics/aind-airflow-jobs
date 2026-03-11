@@ -34,7 +34,7 @@ class TestMethods(unittest.TestCase):
     def setUpClass(cls):
         """Sets up objects to be shared across tests."""
 
-        job_properties = V0040JobDescMsg(
+        array_job_properties = V0040JobDescMsg(
             array="0-9",
             environment=[
                 "PATH=/bin:/usr/bin/:/usr/local/bin/",
@@ -55,10 +55,10 @@ class TestMethods(unittest.TestCase):
             f"docker://{image}:{image_version} "
             "python -m example_package.example_script"
         )
-        cls.example_job_properties = job_properties
-        cls.example_image = image
-        cls.example_image_version = image_version
-        cls.example_script = script
+        cls.array_job_properties = array_job_properties
+        cls.image = image
+        cls.image_version = image_version
+        cls.docker_run_script = script
 
     def test_read_slurm_std_err(self):
         """Tests read_slurm_std_err"""
@@ -102,12 +102,12 @@ class TestMethods(unittest.TestCase):
         """Tests check_cache_job_submit_req method"""
 
         for image_type in ["docker", "oras", "shub"]:
-            command_script = self.example_script.replace("docker", image_type)
+            command_script = self.docker_run_script.replace("docker", image_type)
             submit_req = check_cache_job_submit_req(
                 command_script=command_script,
-                job_properties=self.example_job_properties,
-                image=self.example_image,
-                image_version=self.example_image_version,
+                job_properties=self.array_job_properties,
+                image=self.image,
+                image_version=self.image_version,
             )
 
             self.assertEqual(
@@ -129,35 +129,35 @@ class TestMethods(unittest.TestCase):
         does not need to be cached"""
 
         # not array job
-        job_properties = self.example_job_properties.model_copy(
+        job_properties = self.array_job_properties.model_copy(
             deep=True, update={"array": None}
         )
         submit_req0 = check_cache_job_submit_req(
-            command_script=self.example_script,
+            command_script=self.docker_run_script,
             job_properties=job_properties,
-            image=self.example_image,
-            image_version=self.example_image_version,
+            image=self.image,
+            image_version=self.image_version,
         )
         # image is None
         submit_req1 = check_cache_job_submit_req(
-            command_script=self.example_script,
-            job_properties=self.example_job_properties,
+            command_script=self.docker_run_script,
+            job_properties=self.array_job_properties,
             image=None,
-            image_version=self.example_image_version,
+            image_version=self.image_version,
         )
         # image_version is None
         submit_req2 = check_cache_job_submit_req(
-            command_script=self.example_script,
-            job_properties=self.example_job_properties,
-            image=self.example_image,
+            command_script=self.docker_run_script,
+            job_properties=self.array_job_properties,
+            image=self.image,
             image_version=None,
         )
         # not docker, oras, or shub image
         submit_req3 = check_cache_job_submit_req(
             command_script=" ".join(["#!/bin/bash", "\necho 'Hello World?'"]),
-            job_properties=self.example_job_properties,
-            image=self.example_image,
-            image_version=self.example_image_version,
+            job_properties=self.array_job_properties,
+            image=self.image,
+            image_version=self.image_version,
         )
 
         self.assertIsNone(submit_req0)
@@ -205,6 +205,9 @@ class TestSlurmHook(unittest.TestCase):
         mock_connection.return_value = mock_conn
         slurm_hook = SlurmHook()
         self.assertEqual(
+            "http://example.com", slurm_hook.conn.api_client.configuration.host
+        )
+        self.assertEqual(
             "user", slurm_hook.conn.api_client.configuration.username
         )
         self.assertEqual(
@@ -229,6 +232,9 @@ class TestSlurmHook(unittest.TestCase):
         mock_connection.return_value = mock_conn
 
         slurm_hook = SlurmHook(host="http://example.com")
+        self.assertEqual(
+            "http://example.com", slurm_hook.conn.api_client.configuration.host
+        )
         self.assertEqual(
             "user", slurm_hook.conn.api_client.configuration.username
         )
