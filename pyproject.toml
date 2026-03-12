@@ -51,7 +51,6 @@ loki = [
 ]
 
 slurm = [
-    "aind-slurm-rest==1.0.3",
     "aind-slurm-rest-v2==0.0.3"
 ]
 
