@@ -6,14 +6,20 @@ from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 from aind_slurm_rest_v2 import (
+    V0040Job,
     V0040JobDescMsg,
     V0040JobInfo,
+    V0040JobState,
+    V0040JobTime,
     V0040OpenapiError,
     V0040OpenapiJobInfoResp,
     V0040OpenapiJobSubmitResponse,
+    V0040OpenapiSlurmdbdJobsResp,
     V0040Uint32NoVal,
     V0040Uint64NoVal,
 )
+from aind_slurm_rest_v2.exceptions import NotFoundException
+from airflow.providers.ssh.hooks.ssh import SSHHook
 
 from aind_airflow_jobs.slurm_v2_handler import (
     JobState,
@@ -102,7 +108,9 @@ class TestMethods(unittest.TestCase):
         """Tests check_cache_job_submit_req method"""
 
         for image_type in ["docker", "oras", "shub"]:
-            command_script = self.docker_run_script.replace("docker", image_type)
+            command_script = self.docker_run_script.replace(
+                "docker", image_type
+            )
             submit_req = check_cache_job_submit_req(
                 command_script=command_script,
                 job_properties=self.array_job_properties,
@@ -273,49 +281,200 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
             job_properties=job_properties,
             remote_mnt_dir="",
             local_mnt_dir="",
+            retry_count=1,
+            ssh_conn_id="hpc2/uri",
         )
-        cls.slurm_job = slurm_job
 
-    def test_default_job_properties(self):
-        """Tests that default job properties are set correctly."""
+        running_jobs = [
+            V0040JobInfo(
+                job_id=1,
+                job_state=[JobState.R.value],
+                submit_time=V0040Uint64NoVal(set=True, number=0),
+            ),
+            V0040JobInfo(
+                job_id=2,
+                job_state=[JobState.R.value],
+                submit_time=V0040Uint64NoVal(set=True, number=0),
+                array_job_id=V0040Uint32NoVal(set=True, number=2),
+                array_task_id=V0040Uint32NoVal(set=True, number=1),
+            ),
+        ]
+        completed_jobs = [
+            V0040JobInfo(
+                job_id=3,
+                job_state=[JobState.CD.value],
+                submit_time=V0040Uint64NoVal(set=True, number=0),
+            ),
+        ]
+        jobs_to_retry = [
+            V0040JobInfo(
+                job_id=4,
+                job_state=[JobState.F.value],
+                submit_time=V0040Uint64NoVal(set=True, number=0),
+            ),
+            V0040JobInfo(
+                job_id=5,
+                job_state=[JobState.TO.value],
+                submit_time=V0040Uint64NoVal(set=True, number=0),
+            ),
+        ]
+
+        cls.slurm_job = slurm_job
+        cls.running_jobs = running_jobs
+        cls.completed_jobs = completed_jobs
+        cls.jobs_to_retry = jobs_to_retry
+
+    def test_class_construct(self):
+        """Tests class constructor and that default job properties are
+        set correctly."""
 
         slurm_job = self.slurm_job
-        self.assertEqual("some_part", slurm_job.job_properties.partition)
-        self.assertEqual("dev", slurm_job.job_properties.qos)
-        self.assertEqual("job_123", slurm_job.job_properties.name, "job_123")
+
         self.assertEqual(
-            "tests/%x_%j.out", slurm_job.job_properties.standard_output
+            "#!/bin/bash \necho 'Hello World?'",
+            slurm_job.script,
         )
+        self.assertEqual("", slurm_job.remote_mnt_dir)
+        self.assertEqual("", slurm_job.local_mnt_dir)
+        self.assertEqual(120, slurm_job.polling_request_sleep)
+        self.assertEqual(1, slurm_job.retry_count)
+        self.assertEqual("hpc2/uri", slurm_job.ssh_conn_id)
+
+        job_properties = slurm_job.job_properties
+        self.assertEqual("some_part", job_properties.partition)
+        self.assertEqual("dev", job_properties.qos)
+        self.assertEqual("job_123", job_properties.name, "job_123")
+        self.assertEqual("tests/%x_%j.out", job_properties.standard_output)
         self.assertEqual(
-            "tests/%x_%j_error.out", slurm_job.job_properties.standard_error
+            "tests/%x_%j_error.out", job_properties.standard_error
         )
         self.assertEqual(
             [
                 "PATH=/bin:/usr/bin/:/usr/local/bin/",
                 "LD_LIBRARY_PATH=/lib/:/lib64/:/usr/local/lib",
             ],
-            slurm_job.job_properties.environment,
+            job_properties.environment,
         )
-        self.assertEqual(360, slurm_job.job_properties.time_limit.number)
+        self.assertEqual(360, job_properties.time_limit.number)
+        self.assertEqual(".", job_properties.current_working_directory)
 
-    def test_check_job_status(self):
+    def test_get_job_array_job_id(self):
+        """Tests _get_job_array_job_id method"""
+
+        job_id = self.slurm_job._get_job_array_job_id(job=self.running_jobs[0])
+        self.assertEqual("1", job_id)
+
+        job_id = self.slurm_job._get_job_array_job_id(job=self.running_jobs[1])
+        self.assertEqual("2_1", job_id)
+
+    @patch("aind_airflow_jobs.slurm_v2_handler.sleep")
+    @patch("aind_airflow_jobs.slurm_v2_handler.get_hpc_hook")
+    def test_requeue_failed_jobs(
+        self,
+        mock_get_hpc_hook: MagicMock,
+        mock_sleep: MagicMock,
+    ):
+        """Tests _requeue_failed_jobs method"""
+
+        mock_hpc_hook = MagicMock(spec=SSHHook)
+        mock_hpc_hook.exec_ssh_client_command.return_value = (
+            0,
+            "Requeued job 4",
+            "",
+        )
+        mock_ssh_client = MagicMock()
+        mock_hpc_hook.get_conn.return_value.__enter__.return_value = (
+            mock_ssh_client
+        )
+        mock_get_hpc_hook.return_value = mock_hpc_hook
+
+        job = self.slurm_job
+        with self.assertLogs(level="WARNING") as captured:
+            result = job._requeue_failed_jobs(job_list=self.jobs_to_retry[0:1])
+
+        self.assertTrue(result)
+        mock_get_hpc_hook.assert_called_once_with(self.slurm_job.ssh_conn_id)
+        mock_sleep.assert_called_once_with(1)
+        mock_hpc_hook.exec_ssh_client_command.assert_called_once_with(
+            ssh_client=mock_ssh_client,
+            command="scontrol requeue 4",
+            get_pty=False,
+            environment=dict(),
+            timeout=60,
+        )
+        self.assertEqual(
+            [
+                "WARNING:root:Restarting ['FAILED'] job: 4. Restart count: 0",
+            ],
+            captured.output,
+        )
+
+    @patch("aind_airflow_jobs.slurm_v2_handler.sleep")
+    @patch("aind_airflow_jobs.slurm_v2_handler.get_hpc_hook")
+    def test_requeue_failed_jobs_error(
+        self,
+        mock_get_hpc_hook: MagicMock,
+        mock_sleep: MagicMock,
+    ):
+        """Tests _requeue_failed_jobs method when there is an error
+        requeuing the job"""
+
+        mock_hpc_hook = MagicMock(spec=SSHHook)
+        mock_hpc_hook.exec_ssh_client_command.return_value = (
+            5,
+            "",
+            "Error requeuing job",
+        )
+        mock_ssh_client = MagicMock()
+        mock_hpc_hook.get_conn.return_value.__enter__.return_value = (
+            mock_ssh_client
+        )
+        mock_get_hpc_hook.return_value = mock_hpc_hook
+
+        job = self.slurm_job
+        with self.assertRaises(Exception) as e:
+            with self.assertLogs(level="WARNING") as captured:
+                job._requeue_failed_jobs(job_list=self.jobs_to_retry[1:2])
+
+        self.assertEqual(
+            "There was an error with job requeue! Error requeuing job",
+            e.exception.args[0],
+        )
+        mock_get_hpc_hook.assert_called_once_with(self.slurm_job.ssh_conn_id)
+        mock_sleep.assert_called_once_with(1)
+        mock_hpc_hook.exec_ssh_client_command.assert_called_once_with(
+            ssh_client=mock_ssh_client,
+            command="scontrol requeue 5",
+            get_pty=False,
+            environment=dict(),
+            timeout=60,
+        )
+        self.assertEqual(
+            [
+                "WARNING:root:Restarting ['TIMEOUT'] job: 5. Restart count: 0",
+            ],
+            captured.output,
+        )
+
+    def test_requeue_failed_jobs_none(self):
+        """Tests _requeue_failed_jobs method when there are no jobs to retry"""
+
+        job = self.slurm_job
+        result = job._requeue_failed_jobs(job_list=self.running_jobs)
+        self.assertFalse(result)
+
+    @patch(
+        "aind_airflow_jobs.slurm_v2_handler.SubmitSlurmJobArray"
+        "._requeue_failed_jobs"
+    )
+    def test_check_job_status(self, mock_requeue: MagicMock):
         """Tests _check_job_status method"""
 
+        mock_requeue.return_value = False
         job_status = dict()
 
         job_response = V0040OpenapiJobInfoResp(
-            jobs=[
-                V0040JobInfo(
-                    job_id=1,
-                    job_state=[JobState.R.value],
-                    submit_time=V0040Uint64NoVal(set=True, number=0),
-                ),
-                V0040JobInfo(
-                    job_id=2,
-                    job_state=[JobState.R.value],
-                    submit_time=V0040Uint64NoVal(set=True, number=0),
-                ),
-            ],
+            jobs=self.running_jobs,
             last_backfill=V0040Uint64NoVal(),
             last_update=V0040Uint64NoVal(),
         )
@@ -327,25 +486,23 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         self.assertEqual((False, False), output)
         self.assertEqual({1: "RUNNING", 2: "RUNNING"}, job_status)
 
-    def test_check_job_status_completed_with_errors(self):
+    @patch(
+        "aind_airflow_jobs.slurm_v2_handler.SubmitSlurmJobArray"
+        "._requeue_failed_jobs"
+    )
+    def test_check_job_status_completed_with_errors(
+        self, mock_requeue: MagicMock
+    ):
         """Tests _check_job_status method when there was an error"""
 
+        mock_requeue.return_value = False
+
         # previous job_status that will be updated with new info
-        job_status = {1: "RUNNING", 2: "RUNNING"}
+        job_status = {3: "RUNNING", 4: "RUNNING"}
+        jobs = self.completed_jobs + self.jobs_to_retry[0:1]
 
         job_response = V0040OpenapiJobInfoResp(
-            jobs=[
-                V0040JobInfo(
-                    job_id=1,
-                    job_state=[JobState.CD.value],
-                    submit_time=V0040Uint64NoVal(set=True, number=0),
-                ),
-                V0040JobInfo(
-                    job_id=2,
-                    job_state=[JobState.F.value],
-                    submit_time=V0040Uint64NoVal(set=True, number=0),
-                ),
-            ],
+            jobs=jobs,
             last_backfill=V0040Uint64NoVal(),
             last_update=V0040Uint64NoVal(),
         )
@@ -355,11 +512,16 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
             job_response=job_response, job_status=job_status
         )
         self.assertEqual((True, True), output)
-        self.assertEqual({1: "COMPLETED", 2: "FAILED"}, job_status)
+        self.assertEqual({3: "COMPLETED", 4: "FAILED"}, job_status)
 
-    def test_check_job_status_when_no_response(self):
+    @patch(
+        "aind_airflow_jobs.slurm_v2_handler.SubmitSlurmJobArray"
+        "._requeue_failed_jobs"
+    )
+    def test_check_job_status_when_no_response(self, mock_requeue: MagicMock):
         """Tests _check_job_status method when there was an error"""
 
+        mock_requeue.return_value = False
         job_status = dict()
 
         job_response = V0040OpenapiJobInfoResp(
@@ -426,6 +588,7 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
 
         submit_time = 1693788246
         start_time = 1693788400
+        end_time = 1693789000
 
         mock_get_job.side_effect = [
             V0040OpenapiJobInfoResp(
@@ -470,15 +633,16 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
                         start_time=V0040Uint64NoVal(
                             set=True, number=start_time
                         ),
+                        end_time=V0040Uint64NoVal(set=True, number=end_time),
                     )
                 ],
             ),
         ]
         slurm_job = self.slurm_job
-        slurm_job._monitor_job(submit_response=submit_job_response)
+        result = slurm_job._monitor_job(submit_response=submit_job_response)
 
+        self.assertEqual((start_time, end_time), result)
         mock_sleep.assert_has_calls([call(120), call(120)])
-
         mock_log_info.assert_has_calls(
             [
                 call(
@@ -497,6 +661,10 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
             ]
         )
 
+    @patch(
+        "aind_airflow_jobs.slurm_v2_handler.SubmitSlurmJobArray"
+        "._check_job_status"
+    )
     @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
     @patch("aind_airflow_jobs.slurm_v2_handler.sleep", return_value=None)
     @patch("logging.info")
@@ -509,8 +677,23 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         mock_log_info: MagicMock,
         mock_sleep: MagicMock,
         mock_get_job: MagicMock,
+        mock_check_job_status: MagicMock,
     ):
         """Tests that job is monitored and fails correctly"""
+
+        # side effect to retry job once
+        call_count = [0]
+
+        def check_job_status_side_effect(job_response, job_status):
+            """Side effect to simulate job status changes on multiple calls"""
+            job_status[12345] = "FAILED"
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return False, True
+            else:
+                return True, True
+
+        mock_check_job_status.side_effect = check_job_status_side_effect
 
         mock_read_std_err.return_value = "Error"
         submit_job_response = V0040OpenapiJobSubmitResponse(job_id=12345)
@@ -575,6 +758,88 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
                     '"job_states": ["FAILED"], "start_time": 1693788400}'
                 ),
             ]
+        )
+
+    @patch("aind_airflow_jobs.slurm_v2_handler.SlurmdbApi")
+    @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
+    def test_monitor_job_slurm_db(
+        self,
+        mock_get_job: MagicMock,
+        mock_slurmdb_api: MagicMock,
+    ):
+        """Tests that job can be monitored using the database"""
+
+        submit_job_response = V0040OpenapiJobSubmitResponse(job_id=12345)
+
+        start_time = 1693788400
+        end_time = 1693789000
+
+        mock_get_job.side_effect = NotFoundException(status=404)
+        mock_slurmdb_api.return_value.slurmdb_v0040_get_job.return_value = (
+            V0040OpenapiSlurmdbdJobsResp(
+                jobs=[
+                    V0040Job(
+                        job_id=12345,
+                        state=V0040JobState(current=[JobState.CD.value]),
+                        time=V0040JobTime(start=start_time, end=end_time),
+                    )
+                ]
+            )
+        )
+
+        slurm_job = self.slurm_job
+        with self.assertLogs(level="WARNING") as captured:
+            result = slurm_job._monitor_job(
+                submit_response=submit_job_response
+            )
+        self.assertEqual((start_time, end_time), result)
+        self.assertEqual(
+            [
+                "WARNING:root:Looking for job info in database...",
+            ],
+            captured.output,
+        )
+
+    @patch("aind_airflow_jobs.slurm_v2_handler.SlurmdbApi")
+    @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
+    def test_monitor_job_slurm_db_error(
+        self,
+        mock_get_job: MagicMock,
+        mock_slurmdb_api: MagicMock,
+    ):
+        """Tests that a failed job can be monitored using the database"""
+
+        submit_job_response = V0040OpenapiJobSubmitResponse(job_id=12345)
+
+        mock_get_job.side_effect = NotFoundException(status=404)
+        mock_slurmdb_api.return_value.slurmdb_v0040_get_job.return_value = (
+            V0040OpenapiSlurmdbdJobsResp(
+                jobs=[
+                    V0040Job(
+                        job_id=12345,
+                        state=V0040JobState(current=[JobState.F.value]),
+                    )
+                ]
+            )
+        )
+
+        slurm_job = self.slurm_job
+        with self.assertRaises(Exception) as e:
+            with self.assertLogs(level="WARNING") as captured:
+                slurm_job._monitor_job(submit_response=submit_job_response)
+
+        self.assertEqual(
+            (
+                "There was an issue with the Slurm job: 12345, "
+                "current=['FAILED'] reason=None"
+            ),
+            e.exception.args[0],
+        )
+        self.assertEqual(
+            [
+                "WARNING:root:Looking for job info in database...",
+            ],
+            captured.output,
         )
 
     def test_std_err_filepath(self):
