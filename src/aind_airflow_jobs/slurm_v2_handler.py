@@ -703,19 +703,22 @@ class SlurmJobSensor:
 
     def _check_job_status(
         self, job_response: V0040OpenapiJobInfoResp
-    ) -> Tuple[bool, bool, int, int]:
+    ) -> Tuple[bool, bool, Optional[int], Optional[int]]:
         """
         Scans list of jobs for their status codes. Restarts failed jobs if
         retry_count is set.
+
         Parameters
         ----------
         job_response :  V0040OpenapiJobInfoResp
 
         Returns
         -------
-        Tuple[bool, bool]
+        Tuple[bool, bool, int, int]
           First part of return value will be True if all jobs are finished.
           Second part of return value will be True if any jobs had errors.
+          Third part of return value is the earliest start time among the jobs.
+          Fourth part of return value is the latest end time among the jobs.
 
         """
         job_status: Dict[int, str] = dict()
@@ -744,7 +747,9 @@ class SlurmJobSensor:
             is_error = reduce(lambda x, y: x or y, check_for_errors_list)
         are_jobs_requeued = self._requeue_failed_jobs(job_response.jobs)
         is_finished = False if are_jobs_requeued else is_finished
-        return is_finished, is_error, min(job_start_times), max(job_end_times)
+        start_time = min(job_start_times) if job_start_times else None
+        end_time = max(job_end_times) if job_end_times else None
+        return is_finished, is_error, start_time, end_time
 
     def get_job_status(self) -> Tuple[bool, int, int]:
         """
