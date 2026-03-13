@@ -36,7 +36,7 @@ class TestMethods(unittest.TestCase):
         job = {
             "s3_prefix": "ecephys_123456_2020-10-10_10-10-10",
             "user_email": "example@example.com",
-            "email_notification_types": "all",
+            "email_notification_types": ["all"],
         }
 
         send_job_email(alert_type=AlertType.BEGIN, job=job)
@@ -44,12 +44,41 @@ class TestMethods(unittest.TestCase):
             to="example@example.com",
             subject="Airflow started ecephys_123456_2020-10-10_10-10-10",
             html_content=(
-                "An airflow pipeline started with the following conf\n\n"
-                "Conf:"
-                " {'s3_prefix': 'ecephys_123456_2020-10-10_10-10-10',"
+                "An airflow pipeline started with the following configuration:"
+                "<br/><br/>Configuration:<br/>"
+                "{'s3_prefix': 'ecephys_123456_2020-10-10_10-10-10',"
                 " 'user_email': 'example@example.com',"
-                " 'email_notification_types': 'all'}\n\n"
+                " 'email_notification_types': ['all']}<br/><br/>"
             ),
+        )
+
+    @patch("aind_airflow_jobs.alert_handler.send_email")
+    def test_send_job_email_fail_task_id(self, mock_send: MagicMock):
+        """Tests send_job_email method when task_id is provided
+        and job has failed."""
+
+        job = {
+            "s3_prefix": "ecephys_123456_2020-10-10_10-10-10",
+            "user_email": "example@example.com",
+            "email_notification_types": ["all"],
+        }
+
+        send_job_email(alert_type=AlertType.FAIL, job=job, task_id="def-456")
+        expected_body = (
+            "Please check the AIND Data Transfer Service "
+            '<a href="http://aind-data-transfer-service/jobs">'
+            "Job Status Page</a> for more details or reach out to a "
+            "Scientific Computing engineer for assistance.<br/><br/>"
+            "An airflow pipeline failed with the following configuration:"
+            "<br/><br/>Task: def-456<br/><br/>Configuration:<br/>"
+            "{'s3_prefix': 'ecephys_123456_2020-10-10_10-10-10',"
+            " 'user_email': 'example@example.com',"
+            " 'email_notification_types': ['all']}<br/><br/>"
+        )
+        mock_send.assert_called_once_with(
+            to="example@example.com",
+            subject="Airflow failed ecephys_123456_2020-10-10_10-10-10",
+            html_content=expected_body,
         )
 
     def test_get_job_info_from_context(self):
@@ -97,13 +126,15 @@ class TestMethods(unittest.TestCase):
         """Tests on_failure_or_retry_alert method"""
 
         context = {
-            "params": {"s3_prefix": "ecephys_123456_2020-10-10_10-10-10"}
+            "params": {"s3_prefix": "ecephys_123456_2020-10-10_10-10-10"},
+            "task": MagicMock(task_id="def-456"),
         }
         on_failure_or_retry_alert(alert_type=AlertType.FAIL, context=context)
 
         mock_email.assert_called_once_with(
             alert_type=AlertType.FAIL,
             job={"s3_prefix": "ecephys_123456_2020-10-10_10-10-10"},
+            task_id="def-456",
         )
 
     @patch("aind_airflow_jobs.alert_handler.send_log_message")
@@ -139,6 +170,7 @@ class TestMethods(unittest.TestCase):
         mock_email.assert_called_once_with(
             alert_type=AlertType.FAIL,
             job={"s3_prefix": "ecephys_123456_2020-10-10_10-10-10"},
+            task_id="def-456",
         )
 
     @patch("aind_airflow_jobs.alert_handler.send_job_email")
@@ -148,7 +180,7 @@ class TestMethods(unittest.TestCase):
         job = {
             "s3_prefix": "ecephys_123456_2020-10-10_10-10-10",
             "user_email": "example@example.com",
-            "email_notification_types": "all",
+            "email_notification_types": ["all"],
         }
         on_begin_or_end_alert(alert_type=AlertType.BEGIN, job=job)
 
