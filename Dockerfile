@@ -5,4 +5,4 @@ ADD src ./src
 ADD pyproject.toml .
 ADD setup.py .
 
-RUN pip install . --no-cache-dir
+RUN pip install .[loki,slurm] --no-cache-dir
