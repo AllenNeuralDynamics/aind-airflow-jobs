@@ -757,7 +757,7 @@ class SlurmJobSensor:
         """
 
         job_id = self.job_id
-        # Slurm has two endpoint to get job information. For running jobs,
+        # Slurm has two endpoints to get job information. For running jobs,
         # there is a quick one. For jobs that have completed, we have to
         # check a database. We try the quick one first.
         try:

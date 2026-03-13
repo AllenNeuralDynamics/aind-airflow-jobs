@@ -24,5 +24,6 @@ class TestMethods(unittest.TestCase):
 
         mock_ssh_hook.assert_called_once_with(ssh_conn_id="custom/hpc")
 
+
 if __name__ == "__main__":
     unittest.main()
