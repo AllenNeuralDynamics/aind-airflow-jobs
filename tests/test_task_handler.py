@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import MagicMock, call, patch
 
-from aind_airflow_jobs.task_handler import (
+from aind_airflow_jobs.handlers.task_handler import (
     create_slurm_job_name,
     get_gather_final_metadata_settings,
     get_gather_preliminary_metadata_settings,
@@ -73,7 +73,7 @@ class TestMethods(unittest.TestCase):
         expected_output = {"a": {"b": 1, "f": 5}, "c": {"d": 3, "e": 4}}
         self.assertEqual(expected_output, first_dict)
 
-    @patch("aind_airflow_jobs.task_handler.Variable.get")
+    @patch("aind_airflow_jobs.handlers.task_handler.Variable.get")
     def test_get_merged_task_settings_custom(self, mock_variable: MagicMock):
         """Tests get_merged_task_settings method with custom job_type"""
 
@@ -88,7 +88,7 @@ class TestMethods(unittest.TestCase):
         self.assertEqual(3, len(captured.output))
         mock_variable.assert_not_called()
 
-    @patch("aind_airflow_jobs.task_handler.Variable.get")
+    @patch("aind_airflow_jobs.handlers.task_handler.Variable.get")
     def test_get_merged_task_settings_preset(self, mock_variable: MagicMock):
         """Tests get_merged_task_settings method with ecephys job_type"""
 
@@ -109,7 +109,7 @@ class TestMethods(unittest.TestCase):
             deserialize_json=True,
         )
 
-    @patch("aind_airflow_jobs.task_handler.Variable.get")
+    @patch("aind_airflow_jobs.handlers.task_handler.Variable.get")
     def test_get_merged_task_settings_default(self, mock_variable: MagicMock):
         """Tests get_merged_task_settings method with default fallback"""
 
@@ -139,7 +139,7 @@ class TestMethods(unittest.TestCase):
             ]
         )
 
-    @patch("aind_airflow_jobs.task_handler.Variable.get")
+    @patch("aind_airflow_jobs.handlers.task_handler.Variable.get")
     def test_get_merged_task_settings_modality(self, mock_variable: MagicMock):
         """Tests get_merged_task_settings method with modality"""
 

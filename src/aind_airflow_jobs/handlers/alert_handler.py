@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 from airflow.utils.email import send_email
 
-from aind_airflow_jobs.log_handler import LokiLoggerHook
+from aind_airflow_jobs.handlers.log_handler import LokiLoggerHook
 
 
 class AlertType(str, Enum):
