@@ -12,7 +12,20 @@
 ## Usage
  - This library contains code and classes that can be used globally for aind-airflow-service
  - Primarily used for submitting jobs to the HPC
- - TODO: We should eventually replace this with docker images
+ - The Docker image can used by Airflow KubernetesPodOperators in the aind-airflow-service to run tasks, for example:
+
+```python
+hello_world = KubernetesPodOperator(
+    task_id="hello_world",
+    image="ghcr.io/allenneuraldynamics/aind-airflow-jobs:0.3.0",
+    in_cluster=True,
+    cmds=["python", "-m", "aind_airflow_jobs.dag_tasks.example"],
+    arguments=["hello_world"],
+    env_vars={
+        "EXAMPLE_ENV_VAR": "example_value",
+    },
+)
+```
 
 ## Installation
 To use the software, in the root directory, run
