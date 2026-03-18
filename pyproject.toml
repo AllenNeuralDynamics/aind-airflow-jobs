@@ -36,7 +36,8 @@ dev = [
 all = [
     "aind-airflow-jobs[airflow]",
     "aind-airflow-jobs[loki]",
-    "aind-airflow-jobs[slurm]"
+    "aind-airflow-jobs[slurm]",
+    "aind-airflow-jobs[aws]",
 ]
 
 airflow = [
@@ -52,6 +53,10 @@ loki = [
 
 slurm = [
     "aind-slurm-rest-v2==0.0.3"
+]
+
+aws = [
+    "boto3"
 ]
 
 [tool.setuptools.packages.find]

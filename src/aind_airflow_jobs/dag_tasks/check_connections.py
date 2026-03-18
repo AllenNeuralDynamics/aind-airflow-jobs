@@ -3,6 +3,7 @@
 import argparse
 import os
 import sys
+import boto3
 
 
 def check_param_store_connection():
@@ -13,8 +14,8 @@ def check_param_store_connection():
     ams_uri = os.getenv("AMS_URI")
     co_uri = os.getenv("CO_URI")
     
-    print(default_transfer_settings)
-    print(ams_uri)
+    print(f"default_transfer_settings: {default_transfer_settings}")
+    print(f"ams_uri: {ams_uri}")
 
     if not default_transfer_settings:
         raise AssertionError("Unable to retrieve default_transfer_settings!")
@@ -24,6 +25,25 @@ def check_param_store_connection():
         raise AssertionError("Unable to retrieve ams_uri!")
     if not co_uri:
         raise AssertionError("Unable to retrieve co_uri!")
+
+
+def check_aws_connection():
+    """Check AWS S3 connection."""
+
+    s3_bucket = os.getenv("S3_BUCKET")
+    if not s3_bucket:
+        raise AssertionError("S3_BUCKET environment variable not set!")
+    
+    s3_client = boto3.client("s3")
+    try:
+        s3_client.list_objects_v2(
+            Bucket=s3_bucket,
+            MaxKeys=1,
+        )
+        print(f"Successfully connected to S3 bucket: {s3_bucket}")
+    finally:
+        s3_client.close()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run tasks for check_connections DAG")
