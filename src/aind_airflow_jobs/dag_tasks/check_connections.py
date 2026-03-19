@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 import boto3
+from pathlib import Path
 
 from aind_airflow_jobs.handlers.slurm_v2_handler import SlurmClientSettings
 
@@ -53,6 +54,21 @@ def check_slurm_connection():
     slurm_api = settings.create_api_client()
     response = slurm_api.slurm_v0040_get_ping()
     print(f"SLURM ping response: {response}")
+
+
+def check_vast_connection():
+    """Check that airflow can read files from VAST."""
+    
+    logs_dir = os.getenv("SLURM_LOGS_DIR")
+    if not logs_dir:
+        raise AssertionError("SLURM_LOGS_DIR environment variable not set!")
+    
+    mounted_directory = logs_dir.replace("/allen/aind/", "/data/", 1)
+    is_dir = Path(mounted_directory).is_dir()
+    if not is_dir:
+        raise NotADirectoryError(f"{mounted_directory} not recognized!")
+    
+    print(f"Successfully verified VAST directory: {mounted_directory}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run tasks for check_connections DAG")
