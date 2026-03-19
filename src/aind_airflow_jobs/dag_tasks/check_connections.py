@@ -5,12 +5,13 @@ import os
 import sys
 import boto3
 from pathlib import Path
+import base64
 
 from aind_airflow_jobs.handlers.slurm_v2_handler import SlurmClientSettings
 
 def check_param_store_connection():
     """Check AWS parameter store connections."""
-    # Airflow Variables and Connections are loaded as env vars
+    # Airflow Variables and Connections must be passed as env vars
     default_transfer_settings = os.getenv("DEFAULT_TRANSFER_SETTINGS")
     slurm_uri = os.getenv("SLURM_URI")
     ams_uri = os.getenv("AMS_URI")
@@ -42,7 +43,6 @@ def check_aws_connection():
             Bucket=s3_bucket,
             MaxKeys=1,
         )
-        print(f"Successfully connected to S3 bucket: {s3_bucket}")
     finally:
         s3_client.close()
 
@@ -67,8 +67,18 @@ def check_vast_connection():
     is_dir = Path(mounted_directory).is_dir()
     if not is_dir:
         raise NotADirectoryError(f"{mounted_directory} not recognized!")
+
+
+def check_hpc_connection():
+    """Check hpc ssh command output can be read"""
+
+    # Airflow XCom output must be passed as env var
+    ssh_command_output = os.getenv("SSH_COMMAND_OUTPUT", "")
+    decoded_value = base64.b64decode(ssh_command_output).decode("utf-8")
+    print(f"SSH Command Output: {ssh_command_output}. Decoded: {decoded_value}")
     
-    print(f"Successfully verified VAST directory: {mounted_directory}")
+    if decoded_value.strip() != "Hello World":
+        raise AssertionError(f"Unexpected SSH command output: {decoded_value}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run tasks for check_connections DAG")
