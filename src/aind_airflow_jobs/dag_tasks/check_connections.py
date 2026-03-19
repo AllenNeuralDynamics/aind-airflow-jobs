@@ -5,6 +5,7 @@ import os
 import sys
 import boto3
 
+from aind_airflow_jobs.handlers.slurm_v2_handler import SlurmClientSettings
 
 def check_param_store_connection():
     """Check AWS parameter store connections."""
@@ -44,6 +45,14 @@ def check_aws_connection():
     finally:
         s3_client.close()
 
+
+def check_slurm_connection():
+    """Check SLURM connection."""
+
+    settings = SlurmClientSettings()
+    slurm_api = settings.create_api_client()
+    response = slurm_api.slurm_v0040_get_ping()
+    print(f"SLURM ping response: {response}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run tasks for check_connections DAG")
