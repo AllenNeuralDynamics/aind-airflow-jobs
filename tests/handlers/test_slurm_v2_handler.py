@@ -31,7 +31,7 @@ from aind_airflow_jobs.handlers.slurm_v2_handler import (
     read_slurm_std_err,
 )
 
-TEST_DIR = Path(os.path.dirname(os.path.realpath(__file__))) / "resources"
+TEST_DIR = Path(os.path.dirname(os.path.realpath(__file__))).parent / "resources"
 
 
 class TestMethods(unittest.TestCase):
