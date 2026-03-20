@@ -15,12 +15,12 @@
  - The Docker image can used by Airflow KubernetesPodOperators in the aind-airflow-service to run tasks, for example:
 
 ```python
-hello_world = KubernetesPodOperator(
-    task_id="hello_world",
-    image="ghcr.io/allenneuraldynamics/aind-airflow-jobs:0.3.0",
+check_param_store_connection = KubernetesPodOperator(
+    task_id="check_param_store_connection",
+    image="ghcr.io/allenneuraldynamics/aind-airflow-jobs:latest",
     in_cluster=True,
-    cmds=["python", "-m", "aind_airflow_jobs.dag_tasks.example"],
-    arguments=["hello_world"],
+    cmds=["python", "-m", "aind_airflow_jobs.dag_tasks.check_connections"],
+    arguments=["check_param_store_connection"],
     env_vars={
         "EXAMPLE_ENV_VAR": "example_value",
     },

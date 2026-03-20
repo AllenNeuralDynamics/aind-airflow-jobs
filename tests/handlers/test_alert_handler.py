@@ -115,7 +115,9 @@ class TestMethods(unittest.TestCase):
         send_log_message(job_info=job_info, log_level="DEBUG", message="Hello")
 
         mock_loki.assert_has_calls([call(host=None), call().get_conn()])
-        mock_logger.assert_has_calls([call("aind_airflow_jobs.handlers.alert_handler")])
+        mock_logger.assert_has_calls(
+            [call("aind_airflow_jobs.handlers.alert_handler")]
+        )
         mock_log.assert_called_once_with(
             10,
             "ecephys_123456_2020-10-10_10-10-10 on abc-123 and def-456: Hello",

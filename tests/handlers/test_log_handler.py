@@ -12,7 +12,8 @@ class TestLokiLoggerHook(unittest.TestCase):
     @patch("aind_airflow_jobs.handlers.log_handler.LokiHandler")
     @patch("aind_airflow_jobs.handlers.log_handler.Variable.get")
     @patch(
-        "aind_airflow_jobs.handlers.log_handler.Connection.get_connection_from_secrets"
+        "aind_airflow_jobs.handlers.log_handler.Connection"
+        ".get_connection_from_secrets"
     )
     def test_class_construct(
         self,
@@ -36,7 +37,8 @@ class TestLokiLoggerHook(unittest.TestCase):
     @patch("aind_airflow_jobs.handlers.log_handler.LokiHandler")
     @patch("aind_airflow_jobs.handlers.log_handler.Variable.get")
     @patch(
-        "aind_airflow_jobs.handlers.log_handler.Connection.get_connection_from_secrets"
+        "aind_airflow_jobs.handlers.log_handler.Connection"
+        ".get_connection_from_secrets"
     )
     def test_class_construct_custom_host(
         self,

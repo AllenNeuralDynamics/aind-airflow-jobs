@@ -1,14 +1,16 @@
 """CLI module for check_connections DAG tasks."""
 
 import argparse
+import base64
 import logging
 import os
 import sys
-import boto3
 from pathlib import Path
-import base64
+
+import boto3
 
 from aind_airflow_jobs.handlers.slurm_v2_handler import SlurmClientSettings
+
 
 def check_param_store_connection():
     """Check AWS parameter store connections."""
@@ -17,7 +19,7 @@ def check_param_store_connection():
     slurm_uri = os.getenv("SLURM_URI")
     ams_uri = os.getenv("AMS_URI")
     co_uri = os.getenv("CO_URI")
-    
+
     logging.info(f"default_transfer_settings: {default_transfer_settings}")
     logging.info(f"ams_uri: {ams_uri}")
 
@@ -37,7 +39,7 @@ def check_aws_connection():
     s3_bucket = os.getenv("S3_BUCKET")
     if not s3_bucket:
         raise AssertionError("S3_BUCKET environment variable not set!")
-    
+
     s3_client = boto3.client("s3")
     try:
         s3_client.list_objects_v2(
@@ -59,11 +61,11 @@ def check_slurm_connection():
 
 def check_vast_connection():
     """Check that airflow can read files from VAST."""
-    
+
     logs_dir = os.getenv("SLURM_LOGS_DIR")
     if not logs_dir:
         raise AssertionError("SLURM_LOGS_DIR environment variable not set!")
-    
+
     mounted_directory = logs_dir.replace("/allen/aind/", "/data/", 1)
     is_dir = Path(mounted_directory).is_dir()
     if not is_dir:
@@ -83,18 +85,23 @@ def check_hpc_connection():
     if decoded_value.strip() != "Hello World":
         raise AssertionError(f"Unexpected SSH command output: {decoded_value}")
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run tasks for check_connections DAG")
-    parser.add_argument('task_id', help='Id of the task to run')
-    
+    parser = argparse.ArgumentParser(
+        description="Run tasks for check_connections DAG"
+    )
+    parser.add_argument("task_id", help="Id of the task to run")
+
     args = parser.parse_args()
-    
+
     # Get function by name from current module
     current_module = sys.modules[__name__]
     task_func = getattr(current_module, args.task_id, None)
-    
+
     if task_func is None or not callable(task_func):
-        raise ValueError(f"Task function '{args.task_id}' not found or not callable!")
+        raise ValueError(
+            f"Task function '{args.task_id}' not found or not callable!"
+        )
 
     task_func()
     logging.info(f"Task '{args.task_id}' completed successfully!")

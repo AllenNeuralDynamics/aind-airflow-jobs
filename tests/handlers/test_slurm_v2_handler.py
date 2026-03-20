@@ -31,7 +31,9 @@ from aind_airflow_jobs.handlers.slurm_v2_handler import (
     read_slurm_std_err,
 )
 
-TEST_DIR = Path(os.path.dirname(os.path.realpath(__file__))).parent / "resources"
+TEST_DIR = (
+    Path(os.path.dirname(os.path.realpath(__file__))).parent / "resources"
+)
 
 
 class TestMethods(unittest.TestCase):
@@ -579,7 +581,9 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         self.assertEqual(expected_response, response)
 
     @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
-    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.sleep", return_value=None)
+    @patch(
+        "aind_airflow_jobs.handlers.slurm_v2_handler.sleep", return_value=None
+    )
     @patch("logging.info")
     def test_monitor_job(
         self,
@@ -672,7 +676,9 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         "._check_job_status"
     )
     @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
-    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.sleep", return_value=None)
+    @patch(
+        "aind_airflow_jobs.handlers.slurm_v2_handler.sleep", return_value=None
+    )
     @patch("logging.info")
     @patch("logging.exception")
     @patch("aind_airflow_jobs.handlers.slurm_v2_handler.read_slurm_std_err")
@@ -853,10 +859,12 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         self.assertEqual(expected_path, output_path)
 
     @patch(
-        "aind_airflow_jobs.handlers.slurm_v2_handler.SubmitSlurmJobArray._submit_job"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SubmitSlurmJobArray"
+        "._submit_job"
     )
     @patch(
-        "aind_airflow_jobs.handlers.slurm_v2_handler.SubmitSlurmJobArray._monitor_job"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SubmitSlurmJobArray"
+        "._monitor_job"
     )
     @patch("logging.info")
     def test_run_job(
@@ -1123,7 +1131,8 @@ class TestSlurmJobSensor(unittest.TestCase):
         self.assertEqual((True, True, None, None), output)
 
     @patch(
-        "aind_airflow_jobs.handlers.slurm_v2_handler.SlurmJobSensor._check_job_status"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SlurmJobSensor"
+        "._check_job_status"
     )
     @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
     def test_get_job_status(
@@ -1145,7 +1154,8 @@ class TestSlurmJobSensor(unittest.TestCase):
 
     @patch("aind_airflow_jobs.handlers.slurm_v2_handler.read_slurm_std_err")
     @patch(
-        "aind_airflow_jobs.handlers.slurm_v2_handler.SlurmJobSensor._check_job_status"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SlurmJobSensor"
+        "._check_job_status"
     )
     @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
     def test_get_job_status_error(
