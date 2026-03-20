@@ -1,6 +1,7 @@
 """CLI module for check_connections DAG tasks."""
 
 import argparse
+import logging
 import os
 import sys
 import boto3
@@ -17,8 +18,8 @@ def check_param_store_connection():
     ams_uri = os.getenv("AMS_URI")
     co_uri = os.getenv("CO_URI")
     
-    print(f"default_transfer_settings: {default_transfer_settings}")
-    print(f"ams_uri: {ams_uri}")
+    logging.info(f"default_transfer_settings: {default_transfer_settings}")
+    logging.info(f"ams_uri: {ams_uri}")
 
     if not default_transfer_settings:
         raise AssertionError("Unable to retrieve default_transfer_settings!")
@@ -53,7 +54,7 @@ def check_slurm_connection():
     settings = SlurmClientSettings()
     slurm_api = settings.create_api_client()
     response = slurm_api.slurm_v0040_get_ping()
-    print(f"SLURM ping response: {response}")
+    logging.info(f"SLURM ping response: {response}")
 
 
 def check_vast_connection():
@@ -75,8 +76,10 @@ def check_hpc_connection():
     # Airflow XCom output must be passed as env var
     ssh_command_output = os.getenv("SSH_COMMAND_OUTPUT", "")
     decoded_value = base64.b64decode(ssh_command_output).decode("utf-8")
-    print(f"SSH Command Output: {ssh_command_output}. Decoded: {decoded_value}")
-    
+    logging.info(
+        f"SSH Command Output: {ssh_command_output}. Decoded: {decoded_value}"
+    )
+
     if decoded_value.strip() != "Hello World":
         raise AssertionError(f"Unexpected SSH command output: {decoded_value}")
 
@@ -91,12 +94,7 @@ if __name__ == "__main__":
     task_func = getattr(current_module, args.task_id, None)
     
     if task_func is None or not callable(task_func):
-        print(f"Task function '{args.task_id}' not found or not callable!")
-        sys.exit(1)
-    
-    try:
-        task_func()
-        print(f"Task '{args.task_id}' completed successfully!")
-    except Exception as e:
-        print(f"Task '{args.task_id}' failed: {e}")
-        sys.exit(1)
+        raise ValueError(f"Task function '{args.task_id}' not found or not callable!")
+
+    task_func()
+    logging.info(f"Task '{args.task_id}' completed successfully!")

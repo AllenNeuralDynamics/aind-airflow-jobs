@@ -1,12 +1,12 @@
 """CLI module for example DAG tasks."""
 
 import argparse
+import logging
 import sys
-
 
 def hello_world():
     """Example task function"""
-    print("Hello, World!")
+    logging.info("Hello, World!")
     
 
 if __name__ == "__main__":
@@ -20,12 +20,7 @@ if __name__ == "__main__":
     task_func = getattr(current_module, args.task_id, None)
     
     if task_func is None or not callable(task_func):
-        print(f"Task function '{args.task_id}' not found or not callable!")
-        sys.exit(1)
-    
-    try:
-        task_func()
-        print(f"Task '{args.task_id}' completed successfully!")
-    except Exception as e:
-        print(f"Task '{args.task_id}' failed: {e}")
-        sys.exit(1)
+        raise ValueError(f"Task function '{args.task_id}' not found or not callable!")
+
+    task_func()
+    logging.info(f"Task '{args.task_id}' completed successfully!")
