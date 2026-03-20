@@ -56,7 +56,7 @@ slurm = [
 ]
 
 aws = [
-    "boto3"
+    "boto3[s3]"
 ]
 
 [tool.setuptools.packages.find]
