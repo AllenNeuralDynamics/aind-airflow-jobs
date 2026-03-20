@@ -3,20 +3,20 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from aind_airflow_jobs.hpc_handler import get_hpc_hook
+from aind_airflow_jobs.handlers.hpc_handler import get_hpc_hook
 
 
 class TestMethods(unittest.TestCase):
     """Test methods in the module"""
 
-    @patch("aind_airflow_jobs.hpc_handler.SSHHook")
+    @patch("aind_airflow_jobs.handlers.hpc_handler.SSHHook")
     def test_get_hpc_hook(self, mock_ssh_hook: MagicMock):
         """Tests get_hpc_hook method."""
 
         get_hpc_hook()
         mock_ssh_hook.assert_called_once_with(ssh_conn_id="hpc2/uri")
 
-    @patch("aind_airflow_jobs.hpc_handler.SSHHook")
+    @patch("aind_airflow_jobs.handlers.hpc_handler.SSHHook")
     def test_get_hpc_hook_custom(self, mock_ssh_hook: MagicMock):
         """Test get_hpc_hook method with custom connection id"""
 

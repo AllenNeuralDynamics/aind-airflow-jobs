@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import MagicMock, call, patch
 
-from aind_airflow_jobs.alert_handler import (
+from aind_airflow_jobs.handlers.alert_handler import (
     AlertType,
     get_job_info_from_context,
     on_begin_or_end_alert,
@@ -29,7 +29,7 @@ class TestAlertType(unittest.TestCase):
 class TestMethods(unittest.TestCase):
     """Tests methods in module."""
 
-    @patch("aind_airflow_jobs.alert_handler.send_email")
+    @patch("aind_airflow_jobs.handlers.alert_handler.send_email")
     def test_send_job_email(self, mock_send: MagicMock):
         """Tests send_job_email method"""
 
@@ -52,7 +52,7 @@ class TestMethods(unittest.TestCase):
             ),
         )
 
-    @patch("aind_airflow_jobs.alert_handler.send_email")
+    @patch("aind_airflow_jobs.handlers.alert_handler.send_email")
     def test_send_job_email_fail_task_id(self, mock_send: MagicMock):
         """Tests send_job_email method when task_id is provided
         and job has failed."""
@@ -98,7 +98,7 @@ class TestMethods(unittest.TestCase):
         }
         self.assertEqual(expected_info, job_info)
 
-    @patch("aind_airflow_jobs.alert_handler.LokiLoggerHook")
+    @patch("aind_airflow_jobs.handlers.alert_handler.LokiLoggerHook")
     @patch("logging.getLogger")
     def test_send_log_message(
         self, mock_logger: MagicMock, mock_loki: MagicMock
@@ -115,13 +115,15 @@ class TestMethods(unittest.TestCase):
         send_log_message(job_info=job_info, log_level="DEBUG", message="Hello")
 
         mock_loki.assert_has_calls([call(host=None), call().get_conn()])
-        mock_logger.assert_has_calls([call("aind_airflow_jobs.alert_handler")])
+        mock_logger.assert_has_calls(
+            [call("aind_airflow_jobs.handlers.alert_handler")]
+        )
         mock_log.assert_called_once_with(
             10,
             "ecephys_123456_2020-10-10_10-10-10 on abc-123 and def-456: Hello",
         )
 
-    @patch("aind_airflow_jobs.alert_handler.send_job_email")
+    @patch("aind_airflow_jobs.handlers.alert_handler.send_job_email")
     def test_on_failure_or_retry_alert(self, mock_email: MagicMock):
         """Tests on_failure_or_retry_alert method"""
 
@@ -137,8 +139,8 @@ class TestMethods(unittest.TestCase):
             task_id="def-456",
         )
 
-    @patch("aind_airflow_jobs.alert_handler.send_log_message")
-    @patch("aind_airflow_jobs.alert_handler.send_job_email")
+    @patch("aind_airflow_jobs.handlers.alert_handler.send_log_message")
+    @patch("aind_airflow_jobs.handlers.alert_handler.send_job_email")
     def test_on_failure_or_retry_log_alert(
         self, mock_email: MagicMock, mock_log: MagicMock
     ):
@@ -173,7 +175,7 @@ class TestMethods(unittest.TestCase):
             task_id="def-456",
         )
 
-    @patch("aind_airflow_jobs.alert_handler.send_job_email")
+    @patch("aind_airflow_jobs.handlers.alert_handler.send_job_email")
     def test_on_begin_or_end_alert(self, mock_email: MagicMock):
         """Tests on_begin_or_end_alert method"""
 

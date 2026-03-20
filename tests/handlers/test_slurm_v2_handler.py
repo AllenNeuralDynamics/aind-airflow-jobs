@@ -21,7 +21,7 @@ from aind_slurm_rest_v2 import (
 from aind_slurm_rest_v2.exceptions import NotFoundException
 from airflow.providers.ssh.hooks.ssh import SSHHook
 
-from aind_airflow_jobs.slurm_v2_handler import (
+from aind_airflow_jobs.handlers.slurm_v2_handler import (
     JobState,
     SlurmClientSettings,
     SlurmHook,
@@ -31,7 +31,9 @@ from aind_airflow_jobs.slurm_v2_handler import (
     read_slurm_std_err,
 )
 
-TEST_DIR = Path(os.path.dirname(os.path.realpath(__file__))) / "resources"
+TEST_DIR = (
+    Path(os.path.dirname(os.path.realpath(__file__))).parent / "resources"
+)
 
 
 class TestMethods(unittest.TestCase):
@@ -196,7 +198,7 @@ class TestSlurmHook(unittest.TestCase):
     """Test methods in SlurmHook class"""
 
     @patch(
-        "aind_airflow_jobs.slurm_v2_handler.Connection"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.Connection"
         ".get_connection_from_secrets"
     )
     def test_class_construct(
@@ -224,7 +226,7 @@ class TestSlurmHook(unittest.TestCase):
         )
 
     @patch(
-        "aind_airflow_jobs.slurm_v2_handler.Connection"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.Connection"
         ".get_connection_from_secrets"
     )
     def test_class_construct_custom_host(
@@ -374,8 +376,8 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         )
         self.assertEqual("2_1", job_id)
 
-    @patch("aind_airflow_jobs.slurm_v2_handler.sleep")
-    @patch("aind_airflow_jobs.slurm_v2_handler.get_hpc_hook")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.sleep")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.get_hpc_hook")
     def test_requeue_failed_jobs(
         self,
         mock_get_hpc_hook: MagicMock,
@@ -417,8 +419,8 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
             captured.output,
         )
 
-    @patch("aind_airflow_jobs.slurm_v2_handler.sleep")
-    @patch("aind_airflow_jobs.slurm_v2_handler.get_hpc_hook")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.sleep")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.get_hpc_hook")
     def test_requeue_failed_jobs_error(
         self,
         mock_get_hpc_hook: MagicMock,
@@ -474,7 +476,7 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         self.assertFalse(result)
 
     @patch(
-        "aind_airflow_jobs.slurm_v2_handler.SubmitSlurmJobArray"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SubmitSlurmJobArray"
         "._requeue_failed_jobs"
     )
     def test_check_job_status(self, mock_requeue: MagicMock):
@@ -496,7 +498,7 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         self.assertEqual({1: "RUNNING", 2: "RUNNING"}, job_status)
 
     @patch(
-        "aind_airflow_jobs.slurm_v2_handler.SubmitSlurmJobArray"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SubmitSlurmJobArray"
         "._requeue_failed_jobs"
     )
     def test_check_job_status_completed_with_errors(
@@ -523,7 +525,7 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         self.assertEqual({4: "TIMEOUT", 5: "COMPLETED"}, job_status)
 
     @patch(
-        "aind_airflow_jobs.slurm_v2_handler.SubmitSlurmJobArray"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SubmitSlurmJobArray"
         "._requeue_failed_jobs"
     )
     def test_check_job_status_when_no_response(self, mock_requeue: MagicMock):
@@ -579,7 +581,9 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         self.assertEqual(expected_response, response)
 
     @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
-    @patch("aind_airflow_jobs.slurm_v2_handler.sleep", return_value=None)
+    @patch(
+        "aind_airflow_jobs.handlers.slurm_v2_handler.sleep", return_value=None
+    )
     @patch("logging.info")
     def test_monitor_job(
         self,
@@ -668,14 +672,16 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         )
 
     @patch(
-        "aind_airflow_jobs.slurm_v2_handler.SubmitSlurmJobArray"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SubmitSlurmJobArray"
         "._check_job_status"
     )
     @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
-    @patch("aind_airflow_jobs.slurm_v2_handler.sleep", return_value=None)
+    @patch(
+        "aind_airflow_jobs.handlers.slurm_v2_handler.sleep", return_value=None
+    )
     @patch("logging.info")
     @patch("logging.exception")
-    @patch("aind_airflow_jobs.slurm_v2_handler.read_slurm_std_err")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.read_slurm_std_err")
     def test_monitor_job_with_fail_code(
         self,
         mock_read_std_err: MagicMock,
@@ -767,7 +773,7 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
             ]
         )
 
-    @patch("aind_airflow_jobs.slurm_v2_handler.SlurmdbApi")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.SlurmdbApi")
     @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
     def test_monitor_job_slurm_db(
         self,
@@ -804,7 +810,7 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
             captured.output,
         )
 
-    @patch("aind_airflow_jobs.slurm_v2_handler.SlurmdbApi")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.SlurmdbApi")
     @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
     def test_monitor_job_slurm_db_error(
         self,
@@ -853,10 +859,12 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         self.assertEqual(expected_path, output_path)
 
     @patch(
-        "aind_airflow_jobs.slurm_v2_handler.SubmitSlurmJobArray._submit_job"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SubmitSlurmJobArray"
+        "._submit_job"
     )
     @patch(
-        "aind_airflow_jobs.slurm_v2_handler.SubmitSlurmJobArray._monitor_job"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SubmitSlurmJobArray"
+        "._monitor_job"
     )
     @patch("logging.info")
     def test_run_job(
@@ -956,8 +964,8 @@ class TestSlurmJobSensor(unittest.TestCase):
         job_id = SlurmJobSensor._get_job_array_job_id(job=self.running_jobs[1])
         self.assertEqual("2_1", job_id)
 
-    @patch("aind_airflow_jobs.slurm_v2_handler.sleep")
-    @patch("aind_airflow_jobs.slurm_v2_handler.get_hpc_hook")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.sleep")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.get_hpc_hook")
     def test_requeue_failed_jobs(
         self,
         mock_get_hpc_hook: MagicMock,
@@ -1001,8 +1009,8 @@ class TestSlurmJobSensor(unittest.TestCase):
             captured.output,
         )
 
-    @patch("aind_airflow_jobs.slurm_v2_handler.sleep")
-    @patch("aind_airflow_jobs.slurm_v2_handler.get_hpc_hook")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.sleep")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.get_hpc_hook")
     def test_requeue_failed_jobs_error(
         self,
         mock_get_hpc_hook: MagicMock,
@@ -1060,7 +1068,7 @@ class TestSlurmJobSensor(unittest.TestCase):
         self.assertFalse(result)
 
     @patch(
-        "aind_airflow_jobs.slurm_v2_handler.SlurmJobSensor"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SlurmJobSensor"
         "._requeue_failed_jobs"
     )
     def test_check_job_status(self, mock_requeue: MagicMock):
@@ -1080,7 +1088,7 @@ class TestSlurmJobSensor(unittest.TestCase):
         self.assertEqual((True, False, 1, 10), output)
 
     @patch(
-        "aind_airflow_jobs.slurm_v2_handler.SlurmJobSensor"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SlurmJobSensor"
         "._requeue_failed_jobs"
     )
     def test_check_job_status_completed_with_errors(
@@ -1103,7 +1111,7 @@ class TestSlurmJobSensor(unittest.TestCase):
         self.assertEqual((True, True, 1, 12), output)
 
     @patch(
-        "aind_airflow_jobs.slurm_v2_handler.SlurmJobSensor"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SlurmJobSensor"
         "._requeue_failed_jobs"
     )
     def test_check_job_status_when_no_response(self, mock_requeue: MagicMock):
@@ -1123,7 +1131,8 @@ class TestSlurmJobSensor(unittest.TestCase):
         self.assertEqual((True, True, None, None), output)
 
     @patch(
-        "aind_airflow_jobs.slurm_v2_handler.SlurmJobSensor._check_job_status"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SlurmJobSensor"
+        "._check_job_status"
     )
     @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
     def test_get_job_status(
@@ -1143,9 +1152,10 @@ class TestSlurmJobSensor(unittest.TestCase):
 
         self.assertEqual((True, 1, 10), result)
 
-    @patch("aind_airflow_jobs.slurm_v2_handler.read_slurm_std_err")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.read_slurm_std_err")
     @patch(
-        "aind_airflow_jobs.slurm_v2_handler.SlurmJobSensor._check_job_status"
+        "aind_airflow_jobs.handlers.slurm_v2_handler.SlurmJobSensor"
+        "._check_job_status"
     )
     @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
     def test_get_job_status_error(
@@ -1179,7 +1189,7 @@ class TestSlurmJobSensor(unittest.TestCase):
             ["ERROR:root:std_err:\nError\nNoneType: None"], captured.output
         )
 
-    @patch("aind_airflow_jobs.slurm_v2_handler.SlurmdbApi")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.SlurmdbApi")
     @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
     def test_get_job_status_slurm_db(
         self,
@@ -1212,7 +1222,7 @@ class TestSlurmJobSensor(unittest.TestCase):
             captured.output,
         )
 
-    @patch("aind_airflow_jobs.slurm_v2_handler.SlurmdbApi")
+    @patch("aind_airflow_jobs.handlers.slurm_v2_handler.SlurmdbApi")
     @patch("aind_slurm_rest_v2.api.slurm_api.SlurmApi.slurm_v0040_get_job")
     def test_monitor_job_slurm_db_error(
         self,

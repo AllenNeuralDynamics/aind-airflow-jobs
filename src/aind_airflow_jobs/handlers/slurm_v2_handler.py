@@ -29,7 +29,7 @@ from airflow.models import Connection
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from aind_airflow_jobs.hpc_handler import get_hpc_hook
+from aind_airflow_jobs.handlers.hpc_handler import get_hpc_hook
 
 
 def read_slurm_std_err(
