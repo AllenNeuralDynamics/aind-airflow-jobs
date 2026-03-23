@@ -11,6 +11,11 @@ import boto3
 
 from aind_airflow_jobs.handlers.slurm_v2_handler import SlurmClientSettings
 
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stdout,
+)
+
 
 def check_param_store_connection():
     """Check AWS parameter store connections."""
