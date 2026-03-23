@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 
 from airflow.utils.email import send_email
 
+
 class AlertType(str, Enum):
     """Types of email notifications a user can select"""
 
