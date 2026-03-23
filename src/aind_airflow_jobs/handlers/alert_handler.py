@@ -6,9 +6,6 @@ from typing import Any, Dict, Optional
 
 from airflow.utils.email import send_email
 
-from aind_airflow_jobs.handlers.log_handler import LokiLoggerHook
-
-
 class AlertType(str, Enum):
     """Types of email notifications a user can select"""
 
@@ -102,17 +99,15 @@ def send_log_message(
     job_info: Dict[str, Any],
     message: Optional[str] = None,
     log_level: str = "INFO",
-    loki_host: Optional[str] = None,
 ) -> None:
     """
     Sends a log message given the job information.
+
     Parameters
     ----------
     job_info : Dict[str, Any]
     message : str | None
     log_level : str
-    loki_host : str | None
-      Optional override of loki host
 
     Returns
     -------
@@ -123,7 +118,6 @@ def send_log_message(
     job_name = job_info["job_name"]
     run_id = job_info["run_id"]
     task_id = job_info["task_id"]
-    handler = LokiLoggerHook(host=loki_host).get_conn()
     logging_message = (
         f"{job_name} on {run_id} and {task_id}"
         if message is None
@@ -134,9 +128,7 @@ def send_log_message(
     level = level_name if isinstance(level_name, int) else logging.INFO
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
-    logger.addHandler(handler)
     logger.log(level, sanitized_message)
-    logger.removeHandler(handler)
 
 
 def on_failure_or_retry_alert(

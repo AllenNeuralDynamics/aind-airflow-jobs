@@ -98,11 +98,8 @@ class TestMethods(unittest.TestCase):
         }
         self.assertEqual(expected_info, job_info)
 
-    @patch("aind_airflow_jobs.handlers.alert_handler.LokiLoggerHook")
     @patch("logging.getLogger")
-    def test_send_log_message(
-        self, mock_logger: MagicMock, mock_loki: MagicMock
-    ):
+    def test_send_log_message(self, mock_logger: MagicMock):
         """Tests send_log_message method"""
 
         job_info = {
@@ -114,7 +111,6 @@ class TestMethods(unittest.TestCase):
         mock_logger.return_value.log = mock_log
         send_log_message(job_info=job_info, log_level="DEBUG", message="Hello")
 
-        mock_loki.assert_has_calls([call(host=None), call().get_conn()])
         mock_logger.assert_has_calls(
             [call("aind_airflow_jobs.handlers.alert_handler")]
         )
