@@ -35,7 +35,6 @@ dev = [
 
 all = [
     "aind-airflow-jobs[airflow]",
-    "aind-airflow-jobs[loki]",
     "aind-airflow-jobs[slurm]",
     "aind-airflow-jobs[aws]",
 ]
@@ -45,10 +44,6 @@ airflow = [
     "apache-airflow==2.8.1",
     "apache-airflow-providers-ssh>=3.13.1,<=3.14.0",
     "paramiko>=2.9.0,<4.0.0"
-]
-
-loki = [
-    "python-logging-loki==0.3.1"
 ]
 
 slurm = [
