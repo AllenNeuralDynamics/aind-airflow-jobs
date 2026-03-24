@@ -24,6 +24,7 @@ class AirflowTaskSettings(BaseSettings):
     # Input from xcom or other
     task_input_str: Optional[str] = None
 
+
 class SlurmClientSettings(BaseSettings):
     """Settings required to build slurm api client"""
 

@@ -1,16 +1,22 @@
 """Base class for running DAG tasks."""
 
 import logging
+from typing import Optional
 
 from aind_airflow_jobs.models import AirflowTaskSettings
-from typing import Optional
 
 
 class DagTasks:
 
-    def __init__(self, airflow_task_settings: Optional[AirflowTaskSettings] = None):
+    def __init__(
+        self, airflow_task_settings: Optional[AirflowTaskSettings] = None
+    ):
         """Fetch Airflow context from environment variables"""
-        self.airflow_task_settings = AirflowTaskSettings() if airflow_task_settings is None else airflow_task_settings
+        self.airflow_task_settings = (
+            AirflowTaskSettings()
+            if airflow_task_settings is None
+            else airflow_task_settings
+        )
 
     def run_task(self):
         """Run the appropriate task based on Airflow task_id"""

@@ -22,7 +22,9 @@ class CheckConnectionsDag(DagTasks):
     def check_param_store_connection(self):
         """Check AWS parameter store connections."""
         # Airflow Variables and Connections must be passed as env vars
-        default_transfer_settings = self.airflow_task_settings.var_param_default
+        default_transfer_settings = (
+            self.airflow_task_settings.var_param_default
+        )
         slurm_uri = os.getenv("SLURM_URI")
         ams_uri = os.getenv("AMS_URI")
         co_uri = os.getenv("CO_URI")
