@@ -10,8 +10,6 @@ from os.path import isfile
 from time import sleep
 from typing import Dict, List, Optional, Tuple, Union
 
-from aind_slurm_rest_v2 import ApiClient as Client
-from aind_slurm_rest_v2 import Configuration as Config
 from aind_slurm_rest_v2 import (
     V0040JobDescMsg,
     V0040JobInfo,
@@ -26,10 +24,9 @@ from aind_slurm_rest_v2.api.slurmdb_api import SlurmdbApi
 from aind_slurm_rest_v2.exceptions import NotFoundException
 from airflow.hooks.base import BaseHook
 from airflow.models import Connection
-from pydantic import SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from aind_airflow_jobs.handlers.hpc_handler import get_hpc_hook
+from aind_airflow_jobs.models import SlurmClientSettings
 
 
 def read_slurm_std_err(
@@ -116,25 +113,6 @@ def check_cache_job_submit_req(
         script=new_command_script, job=new_job_props
     )
     return new_job_submit_request
-
-
-class SlurmClientSettings(BaseSettings):
-    """Settings required to build slurm api client"""
-
-    model_config = SettingsConfigDict(env_prefix="SLURM_V2_CLIENT_")
-    host: str
-    username: str
-    access_token: SecretStr
-
-    def create_api_client(self) -> SlurmApi:
-        """Create an api client using settings"""
-        config = Config(
-            host=self.host,
-            username=self.username,
-            access_token=self.access_token.get_secret_value(),
-        )
-        slurm = SlurmApi(Client(config))
-        return slurm
 
 
 class JobState(str, Enum):

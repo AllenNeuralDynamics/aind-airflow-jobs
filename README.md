@@ -12,17 +12,18 @@
 ## Usage
  - This library contains code and classes that can be used globally for aind-airflow-service
  - Primarily used for submitting jobs to the HPC
- - The Docker image can used by Airflow KubernetesPodOperators in the aind-airflow-service to run tasks, for example:
+ - The Docker image can be used by Airflow KubernetesPodOperators in the aind-airflow-service to run tasks, for example:
 
 ```python
+from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
+
 check_param_store_connection = KubernetesPodOperator(
     task_id="check_param_store_connection",
     image="ghcr.io/allenneuraldynamics/aind-airflow-jobs:latest",
     in_cluster=True,
     cmds=["python", "-m", "aind_airflow_jobs.dag_tasks.check_connections"],
-    arguments=["check_param_store_connection"],
     env_vars={
-        "EXAMPLE_ENV_VAR": "example_value",
+        "AIRFLOW_CTX_TASK_ID": "{{ task.task_id }}",
     },
 )
 ```

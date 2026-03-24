@@ -8,8 +8,8 @@ from pathlib import Path
 
 import boto3
 
-from aind_airflow_jobs.models import AirflowContextSettings
-from aind_airflow_jobs.handlers.slurm_v2_handler import SlurmClientSettings
+from aind_airflow_jobs.dag_tasks.base import DagTasks
+from aind_airflow_jobs.models import SlurmClientSettings
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,13 +17,8 @@ logging.basicConfig(
 )
 
 
-class CheckConnectionsDag:
+class CheckConnectionsDag(DagTasks):
 
-    def __init__(self):
-        """Fetch Airflow context from environment variables"""
-        self.airflow_settings = AirflowContextSettings()
-        logging.info(f"Airflow context: {self.airflow_settings}")
-    
     def check_param_store_connection(self):
         """Check AWS parameter store connections."""
         # Airflow Variables and Connections must be passed as env vars
@@ -36,14 +31,15 @@ class CheckConnectionsDag:
         logging.info(f"ams_uri: {ams_uri}")
 
         if not default_transfer_settings:
-            raise AssertionError("Unable to retrieve default_transfer_settings!")
+            raise AssertionError(
+                "Unable to retrieve default_transfer_settings!"
+            )
         if not slurm_uri:
             raise AssertionError("Unable to retrieve slurm_uri!")
         if not ams_uri:
             raise AssertionError("Unable to retrieve ams_uri!")
         if not co_uri:
             raise AssertionError("Unable to retrieve co_uri!")
-
 
     def check_aws_connection(self):
         """Check AWS S3 connection."""
@@ -61,7 +57,6 @@ class CheckConnectionsDag:
         finally:
             s3_client.close()
 
-
     def check_slurm_connection(self):
         """Check SLURM connection."""
 
@@ -70,45 +65,33 @@ class CheckConnectionsDag:
         response = slurm_api.slurm_v0040_get_ping()
         logging.info(f"SLURM ping response: {response}")
 
-
     def check_vast_connection(self):
         """Check that airflow can read files from VAST."""
 
         logs_dir = os.getenv("SLURM_LOGS_DIR")
         if not logs_dir:
-            raise AssertionError("SLURM_LOGS_DIR environment variable not set!")
+            raise AssertionError(
+                "SLURM_LOGS_DIR environment variable not set!"
+            )
 
         mounted_directory = logs_dir.replace("/allen/aind/", "/data/", 1)
         is_dir = Path(mounted_directory).is_dir()
         if not is_dir:
             raise NotADirectoryError(f"{mounted_directory} not recognized!")
 
-
     def check_hpc_connection(self):
         """Check hpc ssh command output can be read"""
 
         # Airflow XCom output must be passed as env var
         ssh_command_output = os.getenv("SSH_COMMAND_OUTPUT", "")
-        decoded_value = base64.b64decode(ssh_command_output).decode("utf-8")
+        decoded = base64.b64decode(ssh_command_output).decode("utf-8")
         logging.info(
-            f"SSH Command Output: {ssh_command_output}. Decoded: {decoded_value}"
+            f"SSH Command Output: {ssh_command_output}. Decoded: {decoded}"
         )
 
-        if decoded_value.strip() != "Hello World":
-            raise AssertionError(f"Unexpected SSH command output: {decoded_value}")
+        if decoded.strip() != "Hello World":
+            raise AssertionError(f"Unexpected SSH command output: {decoded}")
 
-    def run_task(self):
-        """Run the appropriate task based on Airflow task_id"""
-        task_id = self.airflow_settings.task_id
-        task_func = getattr(self, task_id, None)
-
-        if task_func is None or not callable(task_func):
-            raise ValueError(
-                f"Task function '{task_id}' not found or not callable!"
-            )
-
-        task_func()
-        logging.info(f"Task '{task_id}' completed successfully!")
 
 if __name__ == "__main__":
     dag = CheckConnectionsDag()

@@ -3,17 +3,17 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from aind_airflow_jobs.dag_tasks.check_connections import (
-    check_aws_connection,
-    check_hpc_connection,
-    check_param_store_connection,
-    check_slurm_connection,
-    check_vast_connection,
-)
+from aind_airflow_jobs.dag_tasks.check_connections import CheckConnectionsDag
 
 
-class TestMethods(unittest.TestCase):
-    """Test methods in the module"""
+class TestCheckConnectionsDag(unittest.TestCase):
+    """Test CheckConnectionsDag class"""
+
+    @classmethod
+    @patch.dict("os.environ", {"AIRFLOW_CTX_TASK_ID": "task_1"})
+    def setUpClass(cls):
+        """Set up shared resources for tests."""
+        cls.dag = CheckConnectionsDag()
 
     @patch.dict(
         "os.environ",
@@ -29,7 +29,7 @@ class TestMethods(unittest.TestCase):
         """Tests check_param_store_connection."""
 
         with self.assertLogs(level="INFO") as captured:
-            check_param_store_connection()
+            self.dag.check_param_store_connection()
 
         self.assertEqual(
             [
@@ -53,7 +53,7 @@ class TestMethods(unittest.TestCase):
 
         with self.assertLogs(level="INFO"):
             with self.assertRaises(AssertionError) as exc:
-                check_param_store_connection()
+                self.dag.check_param_store_connection()
 
         self.assertEqual(
             "Unable to retrieve default_transfer_settings!",
@@ -74,7 +74,7 @@ class TestMethods(unittest.TestCase):
 
         with self.assertLogs(level="INFO"):
             with self.assertRaises(AssertionError) as exc:
-                check_param_store_connection()
+                self.dag.check_param_store_connection()
 
         self.assertEqual(
             "Unable to retrieve slurm_uri!", exc.exception.args[0]
@@ -94,7 +94,7 @@ class TestMethods(unittest.TestCase):
 
         with self.assertLogs(level="INFO"):
             with self.assertRaises(AssertionError) as exc:
-                check_param_store_connection()
+                self.dag.check_param_store_connection()
 
         self.assertEqual("Unable to retrieve ams_uri!", exc.exception.args[0])
 
@@ -112,7 +112,7 @@ class TestMethods(unittest.TestCase):
 
         with self.assertLogs(level="INFO"):
             with self.assertRaises(AssertionError) as exc:
-                check_param_store_connection()
+                self.dag.check_param_store_connection()
 
         self.assertEqual("Unable to retrieve co_uri!", exc.exception.args[0])
 
@@ -124,7 +124,7 @@ class TestMethods(unittest.TestCase):
         mock_s3_client = MagicMock()
         mock_boto_client.return_value = mock_s3_client
 
-        check_aws_connection()
+        self.dag.check_aws_connection()
 
         mock_boto_client.assert_called_once_with("s3")
         mock_s3_client.list_objects_v2.assert_called_once_with(
@@ -144,7 +144,7 @@ class TestMethods(unittest.TestCase):
         mock_boto_client.return_value = mock_s3_client
 
         with self.assertRaises(RuntimeError) as exc:
-            check_aws_connection()
+            self.dag.check_aws_connection()
 
         self.assertEqual("error", exc.exception.args[0])
         mock_s3_client.close.assert_called_once()
@@ -154,7 +154,7 @@ class TestMethods(unittest.TestCase):
         """Tests check_aws_connection when bucket env is missing."""
 
         with self.assertRaises(AssertionError) as exc:
-            check_aws_connection()
+            self.dag.check_aws_connection()
 
         self.assertEqual(
             "S3_BUCKET environment variable not set!", exc.exception.args[0]
@@ -174,7 +174,7 @@ class TestMethods(unittest.TestCase):
         )
 
         with self.assertLogs(level="INFO") as captured:
-            check_slurm_connection()
+            self.dag.check_slurm_connection()
 
         mock_slurm_settings.assert_called_once_with()
         mock_slurm_settings.return_value.create_api_client.assert_called_once()
@@ -192,7 +192,7 @@ class TestMethods(unittest.TestCase):
         """Tests check_vast_connection validates mounted directory."""
 
         mock_is_dir.return_value = True
-        check_vast_connection()
+        self.dag.check_vast_connection()
 
         mock_is_dir.assert_called_once_with()
 
@@ -205,7 +205,7 @@ class TestMethods(unittest.TestCase):
 
         mock_is_dir.return_value = False
         with self.assertRaises(NotADirectoryError) as exc:
-            check_vast_connection()
+            self.dag.check_vast_connection()
 
         self.assertEqual("/data/logs not recognized!", exc.exception.args[0])
 
@@ -214,7 +214,7 @@ class TestMethods(unittest.TestCase):
         """Tests check_vast_connection when env var is missing."""
 
         with self.assertRaises(AssertionError) as exc:
-            check_vast_connection()
+            self.dag.check_vast_connection()
 
         self.assertEqual(
             "SLURM_LOGS_DIR environment variable not set!",
@@ -228,7 +228,7 @@ class TestMethods(unittest.TestCase):
         """Tests check_hpc_connection."""
 
         with self.assertLogs(level="INFO") as captured:
-            check_hpc_connection()
+            self.dag.check_hpc_connection()
 
         self.assertEqual(
             [
@@ -244,7 +244,7 @@ class TestMethods(unittest.TestCase):
 
         with self.assertLogs(level="INFO"):
             with self.assertRaises(AssertionError) as exc:
-                check_hpc_connection()
+                self.dag.check_hpc_connection()
 
         self.assertEqual(
             "Unexpected SSH command output: foo", exc.exception.args[0]
