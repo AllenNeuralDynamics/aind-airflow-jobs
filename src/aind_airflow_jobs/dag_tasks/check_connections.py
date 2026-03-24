@@ -22,7 +22,7 @@ class CheckConnectionsDag(DagTasks):
     def check_param_store_connection(self):
         """Check AWS parameter store connections."""
         # Airflow Variables and Connections must be passed as env vars
-        default_transfer_settings = os.getenv("DEFAULT_TRANSFER_SETTINGS")
+        default_transfer_settings = self.airflow_task_settings.var_param_default
         slurm_uri = os.getenv("SLURM_URI")
         ams_uri = os.getenv("AMS_URI")
         co_uri = os.getenv("CO_URI")
@@ -44,9 +44,9 @@ class CheckConnectionsDag(DagTasks):
     def check_aws_connection(self):
         """Check AWS S3 connection."""
 
-        s3_bucket = os.getenv("S3_BUCKET")
+        s3_bucket = self.airflow_task_settings.task_input_str
         if not s3_bucket:
-            raise AssertionError("S3_BUCKET environment variable not set!")
+            raise AssertionError("task_input_str must be set to S3 bucket!")
 
         s3_client = boto3.client("s3")
         try:
@@ -68,10 +68,10 @@ class CheckConnectionsDag(DagTasks):
     def check_vast_connection(self):
         """Check that airflow can read files from VAST."""
 
-        logs_dir = os.getenv("SLURM_LOGS_DIR")
+        logs_dir = self.airflow_task_settings.task_input_str
         if not logs_dir:
             raise AssertionError(
-                "SLURM_LOGS_DIR environment variable not set!"
+                "task_input_str must be set to VAST logs directory!"
             )
 
         mounted_directory = logs_dir.replace("/allen/aind/", "/data/", 1)
@@ -83,7 +83,7 @@ class CheckConnectionsDag(DagTasks):
         """Check hpc ssh command output can be read"""
 
         # Airflow XCom output must be passed as env var
-        ssh_command_output = os.getenv("SSH_COMMAND_OUTPUT", "")
+        ssh_command_output = self.airflow_task_settings.task_input_str or ""
         decoded = base64.b64decode(ssh_command_output).decode("utf-8")
         logging.info(
             f"SSH Command Output: {ssh_command_output}. Decoded: {decoded}"

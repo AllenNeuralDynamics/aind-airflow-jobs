@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from aind_airflow_jobs.models import (
-    AirflowContextSettings,
+    AirflowTaskSettings,
     SlurmClientSettings,
 )
 
@@ -12,11 +12,11 @@ class TestAirflowContextSettings(unittest.TestCase):
 
     def test_default(self):
         """Tests default AirflowContextSettings"""
-        settings = AirflowContextSettings(task_id="task_1")
-        self.assertEqual("task_1", settings.task_id)
-        self.assertIsNone(settings.dag_id)
-        self.assertIsNone(settings.dag_run_id)
-        self.assertIsNone(settings.dag_run_conf)
+        settings = AirflowTaskSettings(ctx_task_id="task_1")
+        self.assertEqual("task_1", settings.ctx_task_id)
+        self.assertIsNone(settings.ctx_dag_id)
+        self.assertIsNone(settings.ctx_dag_run_id)
+        self.assertIsNone(settings.ctx_dag_run_conf)
 
     @patch.dict(
         "os.environ",
@@ -30,11 +30,11 @@ class TestAirflowContextSettings(unittest.TestCase):
     )
     def test_from_env(self):
         """Tests creating settings from env vars"""
-        settings = AirflowContextSettings()
-        self.assertEqual("my_task", settings.task_id)
-        self.assertEqual("my_dag", settings.dag_id)
-        self.assertEqual("run_123", settings.dag_run_id)
-        self.assertEqual({"key": "value"}, settings.dag_run_conf)
+        settings = AirflowTaskSettings()
+        self.assertEqual("my_task", settings.ctx_task_id)
+        self.assertEqual("my_dag", settings.ctx_dag_id)
+        self.assertEqual("run_123", settings.ctx_dag_run_id)
+        self.assertEqual({"key": "value"}, settings.ctx_dag_run_conf)
 
 
 class TestSlurmClientSettings(unittest.TestCase):

@@ -14,7 +14,7 @@ class TestDagTasks(unittest.TestCase):
         """Tests that __init__ reads Airflow context from env vars."""
 
         dag = DagTasks()
-        self.assertEqual("task_1", dag.airflow_context.task_id)
+        self.assertEqual("task_1", dag.airflow_task_settings.ctx_task_id)
 
     @patch.dict("os.environ", {"AIRFLOW_CTX_TASK_ID": "task_1"}, clear=True)
     def test_run_task(self):

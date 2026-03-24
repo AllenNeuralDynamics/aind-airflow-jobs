@@ -7,16 +7,22 @@ from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class AirflowContextSettings(BaseSettings):
-    """Settings from Airflow Context passed via env vars"""
+class AirflowTaskSettings(BaseSettings):
+    """Settings from Airflow Task runtime passed via env vars"""
 
-    model_config = SettingsConfigDict(env_prefix="AIRFLOW_CTX_")
+    model_config = SettingsConfigDict(env_prefix="AIRFLOW_")
 
-    task_id: str
-    dag_id: Optional[str] = None
-    dag_run_id: Optional[str] = None
-    dag_run_conf: Optional[Dict[str, Any]] = None
+    # Context
+    ctx_task_id: str
+    ctx_dag_id: Optional[str] = None
+    ctx_dag_run_id: Optional[str] = None
+    ctx_dag_run_conf: Optional[Dict[str, Any]] = None
 
+    # Variables (from AWS Parameter Store)
+    var_param_default: Dict[str, Any] = dict()
+
+    # Input from xcom or other
+    task_input_str: Optional[str] = None
 
 class SlurmClientSettings(BaseSettings):
     """Settings required to build slurm api client"""
