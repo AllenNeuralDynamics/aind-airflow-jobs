@@ -16,7 +16,7 @@ class AirflowTaskSettings(BaseSettings):
     ctx_task_id: str
     ctx_dag_id: Optional[str] = None
     ctx_dag_run_id: Optional[str] = None
-    ctx_dag_run_conf: Optional[Dict[str, Any]] = None
+    ctx_dag_run_conf: Dict[str, Any] = dict()
 
     # Variables (from AWS Parameter Store)
     var_param_default: Dict[str, Any] = dict()

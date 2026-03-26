@@ -3,10 +3,37 @@
 import logging
 from typing import Any, Dict, Optional
 
+from aind_airflow_jobs.models import AirflowTaskSettings
+
+
+def get_job_info_from_airflow_task_settings(
+    settings: AirflowTaskSettings,
+) -> Dict[str, Any]:
+    """
+    Parses AirflowTaskSettings for job information.
+
+    Parameters
+    ----------
+    settings : AirflowTaskSettings
+
+    Returns
+    -------
+    Dict[str, Any]
+    """
+    job = settings.ctx_dag_run_conf
+    run_id = settings.ctx_dag_run_id
+    task_id = settings.ctx_task_id
+    return {
+        "job_name": job.get("s3_prefix", "unknown_job"),
+        "run_id": run_id,
+        "task_id": task_id,
+    }
+
 
 def get_job_info_from_context(context: Dict[str, Any]) -> Dict[str, Any]:
     """
     Parses airflow context dictionary for job information.
+
     Parameters
     ----------
     context : Dict[str, Any]

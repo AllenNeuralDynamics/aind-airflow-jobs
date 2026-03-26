@@ -16,7 +16,7 @@ class TestAirflowContextSettings(unittest.TestCase):
         self.assertEqual("task_1", settings.ctx_task_id)
         self.assertIsNone(settings.ctx_dag_id)
         self.assertIsNone(settings.ctx_dag_run_id)
-        self.assertIsNone(settings.ctx_dag_run_conf)
+        self.assertDictEqual(dict(), settings.ctx_dag_run_conf)
 
     @patch.dict(
         "os.environ",
