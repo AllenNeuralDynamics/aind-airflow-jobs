@@ -23,13 +23,13 @@ from airflow.providers.ssh.hooks.ssh import SSHHook
 
 from aind_airflow_jobs.handlers.slurm_v2_handler import (
     JobState,
-    SlurmClientSettings,
     SlurmHook,
     SlurmJobSensor,
     SubmitSlurmJobArray,
     check_cache_job_submit_req,
     read_slurm_std_err,
 )
+from aind_airflow_jobs.models import SlurmClientSettings
 
 TEST_DIR = (
     Path(os.path.dirname(os.path.realpath(__file__))).parent / "resources"
@@ -175,23 +175,6 @@ class TestMethods(unittest.TestCase):
         self.assertIsNone(submit_req1)
         self.assertIsNone(submit_req2)
         self.assertIsNone(submit_req3)
-
-
-class TestSlurmClientSettings(unittest.TestCase):
-    """Test methods in the SlurmClientSettings class"""
-
-    def test_create_api_client(self):
-        """Tests create_api_client method"""
-
-        settings = SlurmClientSettings(
-            host="http://example.com", username="user", access_token="abc-123"
-        )
-
-        api_client = settings.create_api_client()
-        self.assertEqual("user", api_client.api_client.configuration.username)
-        self.assertEqual(
-            "abc-123", api_client.api_client.configuration.access_token
-        )
 
 
 class TestSlurmHook(unittest.TestCase):

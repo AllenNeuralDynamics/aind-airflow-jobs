@@ -1,82 +1,39 @@
-"""Module to handle sending emails and alerts."""
+"""Module to handle sending alerts."""
 
 import logging
-from enum import Enum
 from typing import Any, Dict, Optional
 
-from airflow.utils.email import send_email
+from aind_airflow_jobs.models import AirflowTaskSettings
 
 
-class AlertType(str, Enum):
-    """Types of email notifications a user can select"""
-
-    BEGIN = "begin"
-    END = "end"
-    FAIL = "fail"
-    RETRY = "retry"
-    ALL = "all"
-
-    def action(self) -> str:
-        """Maps enum to action verb string"""
-        return {
-            self.BEGIN.value: "started",
-            self.END.value: "finished",
-            self.FAIL.value: "failed",
-            self.RETRY.value: "retried",
-        }[self.value]
-
-
-def send_job_email(
-    alert_type: AlertType,
-    job: Dict[str, Any],
-    task_id: Optional[str] = None,
-) -> None:
+def get_job_info_from_airflow_task_settings(
+    settings: AirflowTaskSettings,
+) -> Dict[str, Any]:
     """
-    Send an email given the alert type, job, and optional task_id.
+    Parses AirflowTaskSettings for job information.
+
     Parameters
     ----------
-    alert_type : AlertType
-    job : Dict[str, Any]
-    task_id : Optional[str]
+    settings : AirflowTaskSettings
 
     Returns
     -------
-    None
-
+    Dict[str, Any]
     """
-    s3_prefix = job.get("s3_prefix", "unknown")
-    reason = alert_type.action()
-    subject = f"Airflow {reason} {s3_prefix}"
-    if job.get("user_email") is not None and (
-        alert_type.value in job.get("email_notification_types", [])
-        or alert_type.ALL.value in job.get("email_notification_types", [])
-    ):
-        to_email = job.get("user_email")
-        body = ""
-        if alert_type in [AlertType.FAIL, AlertType.RETRY]:
-            body += (
-                "Please check the AIND Data Transfer Service "
-                '<a href="http://aind-data-transfer-service/jobs">Job '
-                "Status Page</a> for more details or reach out to a "
-                "Scientific Computing engineer for assistance.<br/><br/>"
-            )
-
-        body += (
-            f"An airflow pipeline {reason} with the following "
-            f"configuration:<br/><br/>"
-        )
-
-        if task_id:
-            body += f"Task: {task_id}<br/><br/>"
-
-        body += f"Configuration:<br/>{job}<br/><br/>"
-
-        send_email(to=to_email, subject=subject, html_content=body)
+    job = settings.ctx_dag_run_conf
+    run_id = settings.ctx_dag_run_id
+    task_id = settings.ctx_task_id
+    return {
+        "job_name": job.get("s3_prefix", "unknown_job"),
+        "run_id": run_id,
+        "task_id": task_id,
+    }
 
 
 def get_job_info_from_context(context: Dict[str, Any]) -> Dict[str, Any]:
     """
     Parses airflow context dictionary for job information.
+
     Parameters
     ----------
     context : Dict[str, Any]
@@ -130,71 +87,3 @@ def send_log_message(
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
     logger.log(level, sanitized_message)
-
-
-def on_failure_or_retry_alert(
-    alert_type: AlertType, context: Dict[str, Any]
-) -> None:
-    """
-    Send alert when task fails or retries.
-    Parameters
-    ----------
-    alert_type : AlertType
-    context : Dict[str, Any]
-
-    Returns
-    -------
-    None
-
-    """
-    job = context["params"]
-    task_id = context.get("task").task_id if context.get("task") else None
-
-    send_job_email(
-        alert_type=alert_type,
-        job=job,
-        task_id=task_id,
-    )
-
-
-def on_failure_or_retry_log_alert(
-    alert_type: AlertType, context: Dict[str, Any]
-) -> None:
-    """
-    Send log message when task fails or retries.
-    Parameters
-    ----------
-    alert_type : AlertType
-    context : Dict[str, Any]
-
-    Returns
-    -------
-    None
-
-    """
-    job = context["params"]
-    job_info = get_job_info_from_context(context)
-    task_id = context.get("task").task_id if context.get("task") else None
-
-    send_log_message(job_info, log_level="ERROR")
-    send_job_email(
-        alert_type=alert_type,
-        job=job,
-        task_id=task_id,
-    )
-
-
-def on_begin_or_end_alert(alert_type: AlertType, job: Dict[str, Any]) -> None:
-    """
-    Send an email when DAG starts or finishes.
-    Parameters
-    ----------
-    alert_type : AlertType
-    job : Dict[str, Any]
-
-    Returns
-    -------
-    None
-
-    """
-    send_job_email(alert_type=alert_type, job=job)
