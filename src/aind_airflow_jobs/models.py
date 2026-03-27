@@ -1,3 +1,5 @@
+"""Models for handlers and dag tasks"""
+
 from typing import Any, Dict, Optional
 
 from aind_slurm_rest_v2 import ApiClient as Client

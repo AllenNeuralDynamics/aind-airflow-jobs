@@ -18,6 +18,7 @@ logging.basicConfig(
 
 
 class CheckConnectionsDag(DagTasks):
+    """DAG tasks for checking connections to external services."""
 
     def check_param_store_connection(self):
         """Check AWS parameter store connections."""

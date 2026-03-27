@@ -7,6 +7,7 @@ from aind_airflow_jobs.models import AirflowTaskSettings
 
 
 class DagTasks:
+    """Base class for running DAG tasks."""
 
     def __init__(
         self, airflow_task_settings: Optional[AirflowTaskSettings] = None
