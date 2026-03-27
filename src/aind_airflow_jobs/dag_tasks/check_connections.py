@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from time import sleep
 
 import boto3
 
@@ -15,6 +16,8 @@ logging.basicConfig(
     level=logging.INFO,
     stream=sys.stdout,
 )
+
+SLEEP_TIME = 120
 
 
 class CheckConnectionsDag(DagTasks):
@@ -43,6 +46,7 @@ class CheckConnectionsDag(DagTasks):
             raise AssertionError("Unable to retrieve ams_uri!")
         if not co_uri:
             raise AssertionError("Unable to retrieve co_uri!")
+        sleep(SLEEP_TIME)
 
     def check_aws_connection(self):
         """Check AWS S3 connection."""
@@ -59,6 +63,7 @@ class CheckConnectionsDag(DagTasks):
             )
         finally:
             s3_client.close()
+        sleep(SLEEP_TIME)
 
     def check_slurm_connection(self):
         """Check SLURM connection."""
@@ -81,6 +86,7 @@ class CheckConnectionsDag(DagTasks):
         is_dir = Path(mounted_directory).is_dir()
         if not is_dir:
             raise NotADirectoryError(f"{mounted_directory} not recognized!")
+        sleep(SLEEP_TIME)
 
     def check_hpc_connection(self):
         """Check hpc ssh command output can be read"""

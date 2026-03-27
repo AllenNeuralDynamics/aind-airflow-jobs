@@ -22,6 +22,7 @@ class TestCheckConnectionsDag(unittest.TestCase):
         dag = CheckConnectionsDag(airflow_task_settings=settings)
         cls.dag = dag
 
+    @patch("aind_airflow_jobs.dag_tasks.check_connections.sleep")
     @patch.dict(
         "os.environ",
         {
@@ -31,7 +32,7 @@ class TestCheckConnectionsDag(unittest.TestCase):
         },
         clear=True,
     )
-    def test_check_param_store_connection(self):
+    def test_check_param_store_connection(self, mock_sleep: MagicMock):
         """Tests check_param_store_connection."""
 
         with self.assertLogs(level="INFO") as captured:
@@ -44,6 +45,7 @@ class TestCheckConnectionsDag(unittest.TestCase):
             ],
             captured.output,
         )
+        mock_sleep.assert_called_once()
 
     @patch.dict(
         "os.environ",
@@ -122,8 +124,11 @@ class TestCheckConnectionsDag(unittest.TestCase):
 
         self.assertEqual("Unable to retrieve co_uri!", exc.exception.args[0])
 
+    @patch("aind_airflow_jobs.dag_tasks.check_connections.sleep")
     @patch("aind_airflow_jobs.dag_tasks.check_connections.boto3.client")
-    def test_check_aws_connection(self, mock_boto_client: MagicMock):
+    def test_check_aws_connection(
+        self, mock_boto_client: MagicMock, mock_sleep: MagicMock
+    ):
         """Tests check_aws_connection."""
 
         mock_s3_client = MagicMock()
@@ -136,6 +141,7 @@ class TestCheckConnectionsDag(unittest.TestCase):
             Bucket="my-bucket", MaxKeys=1
         )
         mock_s3_client.close.assert_called_once()
+        mock_sleep.assert_called_once()
 
     @patch("aind_airflow_jobs.dag_tasks.check_connections.boto3.client")
     def test_check_aws_connection_closes_on_error(
@@ -189,14 +195,18 @@ class TestCheckConnectionsDag(unittest.TestCase):
             captured.output,
         )
 
+    @patch("aind_airflow_jobs.dag_tasks.check_connections.sleep")
     @patch("aind_airflow_jobs.dag_tasks.check_connections.Path.is_dir")
-    def test_check_vast_connection(self, mock_is_dir: MagicMock):
+    def test_check_vast_connection(
+        self, mock_is_dir: MagicMock, mock_sleep: MagicMock
+    ):
         """Tests check_vast_connection validates mounted directory."""
 
         mock_is_dir.return_value = True
         self.dag.check_vast_connection()
 
         mock_is_dir.assert_called_once_with()
+        mock_sleep.assert_called_once()
 
     @patch("aind_airflow_jobs.dag_tasks.check_connections.Path.is_dir")
     def test_check_vast_connection_not_directory(self, mock_is_dir: MagicMock):
