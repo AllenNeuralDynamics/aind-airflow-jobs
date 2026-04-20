@@ -68,6 +68,12 @@ class TestMethods(unittest.TestCase):
         mock_log.assert_called_once_with(
             10,
             "ecephys_123456_2020-10-10_10-10-10 on abc-123 and def-456: Hello",
+            extra={
+                "acquisition_name": "ecephys_123456_2020-10-10_10-10-10",
+                "process_name": "def-456",
+                "pipeline_name": "airflow DAG",
+                "run_id": "abc-123",
+            },
         )
 
 

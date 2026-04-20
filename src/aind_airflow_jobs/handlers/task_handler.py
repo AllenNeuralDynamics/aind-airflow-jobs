@@ -70,10 +70,34 @@ def get_merged_task_settings(
                 deserialize_json=True,
             )
 
-    logging.info(f"Job type settings: {preset_task}")
-    logging.info(f"User settings: {user_task}")
+    logging.info(
+        f"Job type settings keys: {sorted(list(preset_task.keys()))}",
+        extra={
+            "process_name": task_id,
+            "pipeline_name": "airflow DAG",
+            "job_type": job_type,
+            "modality_abbreviation": modality_abbreviation,
+        },
+    )
+    logging.info(
+        f"User settings keys: {sorted(list(user_task.keys()))}",
+        extra={
+            "process_name": task_id,
+            "pipeline_name": "airflow DAG",
+            "job_type": job_type,
+            "modality_abbreviation": modality_abbreviation,
+        },
+    )
     nested_update(preset_task, user_task)
-    logging.info(f"Merged settings: {preset_task}")
+    logging.info(
+        f"Merged settings keys: {sorted(list(preset_task.keys()))}",
+        extra={
+            "process_name": task_id,
+            "pipeline_name": "airflow DAG",
+            "job_type": job_type,
+            "modality_abbreviation": modality_abbreviation,
+        },
+    )
     return preset_task
 
 

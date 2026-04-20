@@ -30,8 +30,20 @@ class CheckConnectionsDag(DagTasks):
         ams_uri = os.getenv("AMS_URI")
         co_uri = os.getenv("CO_URI")
 
-        logging.info(f"default_transfer_settings: {default_transfer_settings}")
-        logging.info(f"ams_uri: {ams_uri}")
+        logging.info(
+            f"default_transfer_settings: {default_transfer_settings}",
+            extra={
+                "process_name": "check_param_store_connection",
+                "pipeline_name": "airflow DAG",
+            },
+        )
+        logging.info(
+            f"ams_uri: {ams_uri}",
+            extra={
+                "process_name": "check_param_store_connection",
+                "pipeline_name": "airflow DAG",
+            },
+        )
 
         if not default_transfer_settings:
             raise AssertionError(
@@ -66,7 +78,13 @@ class CheckConnectionsDag(DagTasks):
         settings = SlurmClientSettings()
         slurm_api = settings.create_api_client()
         response = slurm_api.slurm_v0040_get_ping()
-        logging.info(f"SLURM ping response: {response}")
+        logging.info(
+            f"SLURM ping response: {response}",
+            extra={
+                "process_name": "check_slurm_connection",
+                "pipeline_name": "airflow DAG",
+            },
+        )
 
     def check_vast_connection(self):
         """Check that airflow can read files from VAST."""
@@ -89,7 +107,11 @@ class CheckConnectionsDag(DagTasks):
         ssh_command_output = self.airflow_task_settings.task_input_str or ""
         decoded = base64.b64decode(ssh_command_output).decode("utf-8")
         logging.info(
-            f"SSH Command Output: {ssh_command_output}. Decoded: {decoded}"
+            f"SSH Command Output: {ssh_command_output}. Decoded: {decoded}",
+            extra={
+                "process_name": "check_hpc_connection",
+                "pipeline_name": "airflow DAG",
+            },
         )
 
         if decoded.strip() != "Hello World":

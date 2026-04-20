@@ -86,4 +86,13 @@ def send_log_message(
     level = level_name if isinstance(level_name, int) else logging.INFO
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
-    logger.log(level, sanitized_message)
+    logger.log(
+        level,
+        sanitized_message,
+        extra={
+            "acquisition_name": job_name,
+            "process_name": task_id,
+            "pipeline_name": "airflow DAG",
+            "run_id": run_id,
+        },
+    )

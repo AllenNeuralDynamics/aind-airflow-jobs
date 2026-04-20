@@ -30,4 +30,10 @@ class DagTasks:
             )
 
         task_func()
-        logging.info(f"Task '{task_id}' completed successfully!")
+        logging.info(
+            f"Task '{task_id}' completed successfully!",
+            extra={
+                "process_name": task_id,
+                "pipeline_name": "airflow DAG",
+            },
+        )

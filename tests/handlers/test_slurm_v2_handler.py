@@ -3,7 +3,7 @@
 import os
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 from aind_slurm_rest_v2 import (
     V0040Job,
@@ -640,17 +640,20 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
             [
                 call(
                     '{"job_id": 12345, "job_name": "job_123", '
-                    '"job_states": ["PENDING"], "start_time": null}'
+                    '"job_states": ["PENDING"], "start_time": null}',
+                    extra=ANY,
                 ),
                 call(
                     '{"job_id": 12345, "job_name": "job_123", '
-                    '"job_states": ["RUNNING"], "start_time": 1693788400}'
+                    '"job_states": ["RUNNING"], "start_time": 1693788400}',
+                    extra=ANY,
                 ),
                 call(
                     '{"job_id": 12345, "job_name": "job_123", '
-                    '"job_states": ["COMPLETED"], "start_time": 1693788400}'
+                    '"job_states": ["COMPLETED"], "start_time": 1693788400}',
+                    extra=ANY,
                 ),
-                call("Job is Finished!"),
+                call("Job is Finished!", extra=ANY),
             ]
         )
 
@@ -740,18 +743,22 @@ class TestSubmitSlurmJobArray(unittest.TestCase):
         )
         self.assertEqual(expected_error_message, e.exception.args[0])
 
-        mock_log_exception.assert_called_once_with("std_err:\nError")
+        mock_log_exception.assert_called_once_with(
+            "std_err:\nError", extra=ANY
+        )
         mock_sleep.assert_has_calls([call(120)])
 
         mock_log_info.assert_has_calls(
             [
                 call(
                     '{"job_id": 12345, "job_name": "job_123", '
-                    '"job_states": ["RUNNING"], "start_time": null}'
+                    '"job_states": ["RUNNING"], "start_time": null}',
+                    extra=ANY,
                 ),
                 call(
                     '{"job_id": 12345, "job_name": "job_123", '
-                    '"job_states": ["FAILED"], "start_time": 1693788400}'
+                    '"job_states": ["FAILED"], "start_time": 1693788400}',
+                    extra=ANY,
                 ),
             ]
         )

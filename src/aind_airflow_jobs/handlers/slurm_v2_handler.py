@@ -347,7 +347,13 @@ class SubmitSlurmJobArray:
                     )
                     logging.warning(
                         f"Restarting {job.job_state} job: {job_id_to_retry}. "
-                        f"Restart count: {restart_count}"
+                        f"Restart count: {restart_count}",
+                        extra={
+                            "process_name": "submit_slurm_job_array",
+                            "pipeline_name": "airflow DAG",
+                            "job_id": job_id_to_retry,
+                            "job_state": job.job_state,
+                        },
                     )
                     sleep(1)
                     command = f"scontrol requeue {job_id_to_retry}"
@@ -463,11 +469,27 @@ class SubmitSlurmJobArray:
             last_backfill=V0040Uint64NoVal(),
             last_update=V0040Uint64NoVal(),
         )
-        logging.debug(f"Initialized placeholder: {job_response}")
+        logging.debug(
+            f"Initialized placeholder: {job_response}",
+            extra={
+                "process_name": "monitor_slurm_job",
+                "pipeline_name": "airflow DAG",
+                "acquisition_name": job_name,
+                "job_id": job_id,
+            },
+        )
         try:
             job_response = self.slurm.slurm_v0040_get_job(job_id=str(job_id))
         except NotFoundException:
-            logging.warning("Looking for job info in database...")
+            logging.warning(
+                "Looking for job info in database...",
+                extra={
+                    "process_name": "monitor_slurm_job",
+                    "pipeline_name": "airflow DAG",
+                    "acquisition_name": job_name,
+                    "job_id": job_id,
+                },
+            )
             slurm_db_api = SlurmdbApi(api_client=self.slurm.api_client)
             slurm_db_response = slurm_db_api.slurmdb_v0040_get_job(
                 job_id=str(job_id)
@@ -509,7 +531,15 @@ class SubmitSlurmJobArray:
                 "start_time": start_time,
             }
         )
-        logging.info(message)
+        logging.info(
+            message,
+            extra={
+                "process_name": "monitor_slurm_job",
+                "pipeline_name": "airflow DAG",
+                "acquisition_name": job_name,
+                "job_id": job_id,
+            },
+        )
         job_status = dict()
         is_finished, is_error = self._check_job_status(
             job_response, job_status
@@ -543,7 +573,15 @@ class SubmitSlurmJobArray:
                     "start_time": start_time,
                 }
             )
-            logging.info(message)
+            logging.info(
+                message,
+                extra={
+                    "process_name": "monitor_slurm_job",
+                    "pipeline_name": "airflow DAG",
+                    "acquisition_name": job_name,
+                    "job_id": job_id,
+                },
+            )
             is_finished, is_error = self._check_job_status(
                 job_response, job_status
             )
@@ -562,14 +600,30 @@ class SubmitSlurmJobArray:
                 remote_mnt_dir=self.remote_mnt_dir,
                 local_mnt_dir=self.local_mnt_dir,
             )
-            logging.exception(f"std_err:\n{std_err_msg}")
+            logging.exception(
+                f"std_err:\n{std_err_msg}",
+                extra={
+                    "process_name": "monitor_slurm_job",
+                    "pipeline_name": "airflow DAG",
+                    "acquisition_name": job_name,
+                    "job_id": job_id,
+                },
+            )
             raise Exception(
                 f"There were errors with the slurm job. "
                 f"Job: {message}. "
                 f"Errors: {errors}"
             )
         else:
-            logging.info("Job is Finished!")
+            logging.info(
+                "Job is Finished!",
+                extra={
+                    "process_name": "monitor_slurm_job",
+                    "pipeline_name": "airflow DAG",
+                    "acquisition_name": job_name,
+                    "job_id": job_id,
+                },
+            )
         return start_time, end_time
 
     def _std_err_filepath(self, job_id: Union[int, str]) -> str:
@@ -595,10 +649,34 @@ class SubmitSlurmJobArray:
         submit_response = self._submit_job()
         job_id = submit_response.job_id
         job_name = self.job_properties.name
-        logging.info(f"Job Name: {job_name}")
-        logging.info(f"Job ID: {job_id}")
+        logging.info(
+            f"Job Name: {job_name}",
+            extra={
+                "process_name": "run_slurm_job",
+                "pipeline_name": "airflow DAG",
+                "acquisition_name": job_name,
+                "job_id": job_id,
+            },
+        )
+        logging.info(
+            f"Job ID: {job_id}",
+            extra={
+                "process_name": "run_slurm_job",
+                "pipeline_name": "airflow DAG",
+                "acquisition_name": job_name,
+                "job_id": job_id,
+            },
+        )
         std_err = self._std_err_filepath(job_id=job_id)
-        logging.info(f"Please check {std_err} for additional logs.")
+        logging.info(
+            f"Please check {std_err} for additional logs.",
+            extra={
+                "process_name": "run_slurm_job",
+                "pipeline_name": "airflow DAG",
+                "acquisition_name": job_name,
+                "job_id": job_id,
+            },
+        )
         self._monitor_job(submit_response=submit_response)
 
 
@@ -657,7 +735,13 @@ class SlurmJobSensor:
                     )
                     logging.warning(
                         f"Restarting {job.job_state} job: {job_id_to_retry}. "
-                        f"Restart count: {restart_count}"
+                        f"Restart count: {restart_count}",
+                        extra={
+                            "process_name": "slurm_job_sensor",
+                            "pipeline_name": "airflow DAG",
+                            "job_id": job_id_to_retry,
+                            "job_state": job.job_state,
+                        },
                     )
                     sleep(1)
                     command = f"scontrol requeue {job_id_to_retry}"
@@ -751,7 +835,14 @@ class SlurmJobSensor:
                     remote_mnt_dir=self.remote_mnt_dir,
                     local_mnt_dir=self.local_mnt_dir,
                 )
-                logging.exception(f"std_err:\n{std_err_msg}")
+                logging.exception(
+                    f"std_err:\n{std_err_msg}",
+                    extra={
+                        "process_name": "slurm_job_sensor",
+                        "pipeline_name": "airflow DAG",
+                        "job_id": self.job_id,
+                    },
+                )
                 raise Exception(
                     f"There were errors with the slurm job. "
                     f"Job: {self.job_id}. "
@@ -759,7 +850,14 @@ class SlurmJobSensor:
                 )
             return is_finished, start_time, end_time
         except NotFoundException:
-            logging.warning("Looking for job info in database...")
+            logging.warning(
+                "Looking for job info in database...",
+                extra={
+                    "process_name": "slurm_job_sensor",
+                    "pipeline_name": "airflow DAG",
+                    "job_id": job_id,
+                },
+            )
             slurm_db_api = SlurmdbApi(api_client=self.slurm.api_client)
             slurm_db_response = slurm_db_api.slurmdb_v0040_get_job(
                 job_id=str(job_id)
