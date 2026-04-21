@@ -34,14 +34,12 @@ class CheckConnectionsDag(DagTasks):
             f"default_transfer_settings: {default_transfer_settings}",
             extra={
                 "process_name": "check_param_store_connection",
-                "pipeline_name": "airflow DAG",
             },
         )
         logging.info(
             f"ams_uri: {ams_uri}",
             extra={
                 "process_name": "check_param_store_connection",
-                "pipeline_name": "airflow DAG",
             },
         )
 
@@ -82,7 +80,6 @@ class CheckConnectionsDag(DagTasks):
             f"SLURM ping response: {response}",
             extra={
                 "process_name": "check_slurm_connection",
-                "pipeline_name": "airflow DAG",
             },
         )
 
@@ -110,7 +107,6 @@ class CheckConnectionsDag(DagTasks):
             f"SSH Command Output: {ssh_command_output}. Decoded: {decoded}",
             extra={
                 "process_name": "check_hpc_connection",
-                "pipeline_name": "airflow DAG",
             },
         )
 
