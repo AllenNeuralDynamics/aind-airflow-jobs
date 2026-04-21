@@ -28,7 +28,10 @@ class TestDagTasks(unittest.TestCase):
 
         mock_task.assert_called_once()
         self.assertEqual(
-            ["INFO:root:Task 'task_1' completed successfully!"],
+            [
+                "INFO:root:Task 'task_1' starting.",
+                "INFO:root:Task 'task_1' completed successfully!",
+            ],
             captured.output,
         )
 

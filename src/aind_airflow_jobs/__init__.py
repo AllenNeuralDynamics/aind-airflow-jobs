@@ -6,8 +6,8 @@ import os
 from datetime import datetime, timezone
 from logging import LogRecord
 
-import log_json
 import yaml
+from pythonjsonlogger import json as log_json
 
 __version__ = "0.4.2"
 
