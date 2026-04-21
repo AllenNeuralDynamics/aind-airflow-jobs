@@ -17,10 +17,10 @@ readme = "README.md"
 dynamic = ["version"]
 
 dependencies = [
-    "log-json",
-    "PyYAML>=6.0,<7.0",
     "pydantic-settings>=2.2.0,<3.0",
-    "pydantic>=2.2.0,<3.0"
+    "pydantic>=2.2.0,<3.0",
+    'python-json-logger',
+    "PyYAML>=6.0,<7.0"
 ]
 
 [project.optional-dependencies]
