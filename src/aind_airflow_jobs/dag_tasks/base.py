@@ -33,7 +33,6 @@ class DagTasks:
             f"Task '{task_id}' starting.",
             extra={
                 "process_name": task_id,
-                "pipeline_name": "airflow DAG",
                 "event_type": "stage_start",
             },
         )
@@ -42,7 +41,6 @@ class DagTasks:
             f"Task '{task_id}' completed successfully!",
             extra={
                 "process_name": task_id,
-                "pipeline_name": "airflow DAG",
                 "event_type": "stage_complete",
             },
         )

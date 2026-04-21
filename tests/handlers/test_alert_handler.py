@@ -71,7 +71,6 @@ class TestMethods(unittest.TestCase):
             extra={
                 "acquisition_name": "ecephys_123456_2020-10-10_10-10-10",
                 "process_name": "def-456",
-                "pipeline_name": "airflow DAG",
                 "run_id": "abc-123",
             },
         )

@@ -92,7 +92,6 @@ def send_log_message(
         extra={
             "acquisition_name": job_name,
             "process_name": task_id,
-            "pipeline_name": "airflow DAG",
             "run_id": run_id,
         },
     )

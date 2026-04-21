@@ -350,7 +350,6 @@ class SubmitSlurmJobArray:
                         f"Restart count: {restart_count}",
                         extra={
                             "process_name": "submit_slurm_job_array",
-                            "pipeline_name": "airflow DAG",
                             "job_id": job_id_to_retry,
                             "job_state": job.job_state,
                         },
@@ -473,7 +472,6 @@ class SubmitSlurmJobArray:
             f"Initialized placeholder: {job_response}",
             extra={
                 "process_name": "monitor_slurm_job",
-                "pipeline_name": "airflow DAG",
                 "acquisition_name": job_name,
                 "job_id": job_id,
             },
@@ -485,7 +483,6 @@ class SubmitSlurmJobArray:
                 "Looking for job info in database...",
                 extra={
                     "process_name": "monitor_slurm_job",
-                    "pipeline_name": "airflow DAG",
                     "acquisition_name": job_name,
                     "job_id": job_id,
                 },
@@ -535,7 +532,6 @@ class SubmitSlurmJobArray:
             message,
             extra={
                 "process_name": "monitor_slurm_job",
-                "pipeline_name": "airflow DAG",
                 "acquisition_name": job_name,
                 "job_id": job_id,
             },
@@ -577,7 +573,6 @@ class SubmitSlurmJobArray:
                 message,
                 extra={
                     "process_name": "monitor_slurm_job",
-                    "pipeline_name": "airflow DAG",
                     "acquisition_name": job_name,
                     "job_id": job_id,
                 },
@@ -604,7 +599,6 @@ class SubmitSlurmJobArray:
                 f"std_err:\n{std_err_msg}",
                 extra={
                     "process_name": "monitor_slurm_job",
-                    "pipeline_name": "airflow DAG",
                     "acquisition_name": job_name,
                     "job_id": job_id,
                 },
@@ -619,7 +613,6 @@ class SubmitSlurmJobArray:
                 "Job is Finished!",
                 extra={
                     "process_name": "monitor_slurm_job",
-                    "pipeline_name": "airflow DAG",
                     "acquisition_name": job_name,
                     "job_id": job_id,
                 },
@@ -653,7 +646,6 @@ class SubmitSlurmJobArray:
             f"Job Name: {job_name}",
             extra={
                 "process_name": "run_slurm_job",
-                "pipeline_name": "airflow DAG",
                 "acquisition_name": job_name,
                 "job_id": job_id,
                 "event_type": "stage_start",
@@ -663,7 +655,6 @@ class SubmitSlurmJobArray:
             f"Job ID: {job_id}",
             extra={
                 "process_name": "run_slurm_job",
-                "pipeline_name": "airflow DAG",
                 "acquisition_name": job_name,
                 "job_id": job_id,
             },
@@ -673,7 +664,6 @@ class SubmitSlurmJobArray:
             f"Please check {std_err} for additional logs.",
             extra={
                 "process_name": "run_slurm_job",
-                "pipeline_name": "airflow DAG",
                 "acquisition_name": job_name,
                 "job_id": job_id,
             },
@@ -683,7 +673,6 @@ class SubmitSlurmJobArray:
             f"Job '{job_name}' completed successfully!",
             extra={
                 "process_name": "run_slurm_job",
-                "pipeline_name": "airflow DAG",
                 "acquisition_name": job_name,
                 "job_id": job_id,
                 "event_type": "stage_complete",
@@ -749,7 +738,6 @@ class SlurmJobSensor:
                         f"Restart count: {restart_count}",
                         extra={
                             "process_name": "slurm_job_sensor",
-                            "pipeline_name": "airflow DAG",
                             "job_id": job_id_to_retry,
                             "job_state": job.job_state,
                         },
@@ -850,7 +838,6 @@ class SlurmJobSensor:
                     f"std_err:\n{std_err_msg}",
                     extra={
                         "process_name": "slurm_job_sensor",
-                        "pipeline_name": "airflow DAG",
                         "job_id": self.job_id,
                     },
                 )
@@ -865,7 +852,6 @@ class SlurmJobSensor:
                 "Looking for job info in database...",
                 extra={
                     "process_name": "slurm_job_sensor",
-                    "pipeline_name": "airflow DAG",
                     "job_id": job_id,
                 },
             )

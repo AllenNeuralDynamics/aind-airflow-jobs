@@ -74,7 +74,6 @@ def get_merged_task_settings(
         f"Job type settings keys: {sorted(list(preset_task.keys()))}",
         extra={
             "process_name": task_id,
-            "pipeline_name": "airflow DAG",
             "job_type": job_type,
             "modality_abbreviation": modality_abbreviation,
         },
@@ -83,7 +82,6 @@ def get_merged_task_settings(
         f"User settings keys: {sorted(list(user_task.keys()))}",
         extra={
             "process_name": task_id,
-            "pipeline_name": "airflow DAG",
             "job_type": job_type,
             "modality_abbreviation": modality_abbreviation,
         },
@@ -93,7 +91,6 @@ def get_merged_task_settings(
         f"Merged settings keys: {sorted(list(preset_task.keys()))}",
         extra={
             "process_name": task_id,
-            "pipeline_name": "airflow DAG",
             "job_type": job_type,
             "modality_abbreviation": modality_abbreviation,
         },
