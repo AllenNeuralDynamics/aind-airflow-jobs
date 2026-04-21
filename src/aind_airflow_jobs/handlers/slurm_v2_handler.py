@@ -656,6 +656,7 @@ class SubmitSlurmJobArray:
                 "pipeline_name": "airflow DAG",
                 "acquisition_name": job_name,
                 "job_id": job_id,
+                "event_type": "stage_start",
             },
         )
         logging.info(
@@ -678,6 +679,16 @@ class SubmitSlurmJobArray:
             },
         )
         self._monitor_job(submit_response=submit_response)
+        logging.info(
+            f"Job '{job_name}' completed successfully!",
+            extra={
+                "process_name": "run_slurm_job",
+                "pipeline_name": "airflow DAG",
+                "acquisition_name": job_name,
+                "job_id": job_id,
+                "event_type": "stage_complete",
+            },
+        )
 
 
 class SlurmJobSensor:

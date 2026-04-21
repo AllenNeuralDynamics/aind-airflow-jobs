@@ -29,11 +29,20 @@ class DagTasks:
                 f"Task function '{task_id}' not found or not callable!"
             )
 
+        logging.info(
+            f"Task '{task_id}' starting.",
+            extra={
+                "process_name": task_id,
+                "pipeline_name": "airflow DAG",
+                "event_type": "stage_start",
+            },
+        )
         task_func()
         logging.info(
             f"Task '{task_id}' completed successfully!",
             extra={
                 "process_name": task_id,
                 "pipeline_name": "airflow DAG",
+                "event_type": "stage_complete",
             },
         )
